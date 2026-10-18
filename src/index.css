@@ -1,0 +1,50 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Custom Design System Tokens & Utility Classes: Rich Gold & Deep Dark Slate */
+:root {
+  --sidebar-w: 260px;
+  --navbar-h: 64px;
+}
+
+/* Prevent unwanted horizontal scrolls across the entire app */
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+  overflow-x: hidden;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: #FEF3C7;
+  color: #0f172a;
+}
+
+/* Custom Scrollbar for rich dark slate sidebar and data panels */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.sidebar-scroll::-webkit-scrollbar-thumb {
+  background: #7BAEC8;
+}
+
+.sidebar-scroll::-webkit-scrollbar-thumb:hover {
+  background: #5B9CB8;
+}
