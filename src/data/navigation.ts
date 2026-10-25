@@ -12,45 +12,52 @@ export const NAVIGATION_CATEGORIES: NavCategory[] = [
   },
   {
     id: 'member-master',
-    title: 'Member Master',
+    title: 'Member & Area Master',
     iconName: 'Users',
     items: [
-      { id: 'its-lookup', label: 'ITS Lookup' },
-      { id: 'family-hof-profile', label: 'Family HOF/FM Profile' },
-      { id: 'area-mapping', label: 'Area Mapping' }
+      { id: 'directory-hof', label: 'Directory & Family HOF' },
+      { id: 'area-mapping', label: 'Mohallah Area Mapping' },
+      { id: 'its-updater', label: 'ITS Profile Updater' }
     ]
   },
   {
-    id: 'financial-takhmeen',
-    title: 'Financial & Takhmeen',
-    iconName: 'Coins',
-    items: [
-      { id: 'default-year', label: 'Default Year' },
-      { id: 'opening-balance', label: 'Opening Balance' },
-      { id: 'income-entry', label: 'Income Entry', badge: 'New', badgeColor: 'yellow' },
-      { id: 'expense-entry', label: 'Expense Entry' },
-      { id: 'waivers', label: 'Waivers' },
-      { id: 'receipt-settings', label: 'Receipt Settings' }
-    ]
-  },
-  {
-    id: 'faiz-services',
-    title: 'Faiz & Services',
+    id: 'fmb-takhmeen',
+    title: 'FMB & Takhmeen',
     iconName: 'UtensilsCrossed',
     items: [
-      { id: 'thaali-status', label: 'Thaali Status', badge: 'Active/Blocked', badgeColor: 'emerald' },
-      { id: 'hall-booking', label: 'Hall Booking' },
-      { id: 'miqaat', label: 'Miqaat' }
+      { id: 'thaali-status', label: 'Thaali Status Manager', badge: 'Live', badgeColor: 'emerald' },
+      { id: 'takhmeen-allocation', label: 'Takhmeen Allocation' },
+      { id: 'fmb-dues', label: 'Daily Collection & Dues', badge: 'Active', badgeColor: 'yellow' }
     ]
   },
   {
-    id: 'reports-ledgers',
-    title: 'Reports & Ledgers',
-    iconName: 'LineChart',
+    id: 'sabeel-management',
+    title: 'Sabeel Management',
+    iconName: 'Coins',
     items: [
-      { id: 'daily-collections', label: 'Daily Collections' },
-      { id: 'member-ledgers', label: 'Member Ledgers' },
-      { id: 'audit-logs', label: 'Audit Logs' }
+      { id: 'sabeel-ledger', label: 'Sabeel Master Ledger' },
+      { id: 'sabeel-collection', label: 'Sabeel Takhmeen & Collection' },
+      { id: 'sabeel-history', label: 'Transfer & History' }
+    ]
+  },
+  {
+    id: 'services',
+    title: 'Services',
+    iconName: 'Calendar',
+    items: [
+      { id: 'hall-booking', label: 'Hall Bookings' },
+      { id: 'ziyarat-tracking', label: 'Ziyarat Tracking (Karbala/Hajj)' },
+      { id: 'miqaat-madrasa', label: 'Madrasa & Miqaat Registrations' }
+    ]
+  },
+  {
+    id: 'payments-receipts',
+    title: 'Payments & Receipts Engine',
+    iconName: 'Receipt',
+    items: [
+      { id: 'counter-payment', label: 'Counter Payment Entry', badge: 'POS', badgeColor: 'blue' },
+      { id: 'receipts-history', label: 'Receipts History & PDF Print' },
+      { id: 'refund-ledger', label: 'Refund / Reversal Ledger' }
     ]
   },
   {
@@ -58,7 +65,7 @@ export const NAVIGATION_CATEGORIES: NavCategory[] = [
     title: 'System Settings',
     iconName: 'Sliders',
     items: [
-      { id: 'roles-permissions', label: 'Roles & Permissions' },
+      { id: 'roles-permissions', label: 'Roles & Permissions (RBAC)' },
       { id: 'change-password', label: 'Change Password' }
     ]
   }

@@ -4,11 +4,30 @@ import {
   Plus,
   RefreshCw,
   Download,
-  ShieldCheck
+  ShieldCheck,
+  Lock,
+  Edit,
+  Trash2,
+  CheckCircle2,
+  AlertTriangle,
+  Receipt,
+  Coins,
+  Users,
+  UtensilsCrossed,
+  Calendar,
 } from 'lucide-react';
 import { Breadcrumb } from './Breadcrumb';
-import { DashboardView } from './DashboardView';
-import { FinancialYear } from '../types';
+import { MainOverviewDashboard } from './dashboard/MainOverviewDashboard';
+import { FaizDashboard } from './dashboard/FaizDashboard';
+import { RolesPermissionsModule } from './RolesPermissionsModule';
+import { ChangePasswordPage } from './ChangePasswordPage';
+import { MemberMasterModule } from './member-master/MemberMasterModule';
+import { FmbTakhmeenModule } from './fmb-takhmeen/FmbTakhmeenModule';
+import { SabeelManagementModule } from './sabeel-management/SabeelManagementModule';
+import { HallBookingModule } from './hall-booking/HallBookingModule';
+import { ExecutiveReportsModule } from './executive-reports/ExecutiveReportsModule';
+import { FinancialYear, UserProfile } from '../types';
+import { checkUserPermission, appendActivityLog } from '../utils/rbac';
 
 interface MainContentProps {
   activeCategoryId: string;
@@ -16,8 +35,10 @@ interface MainContentProps {
   activeSubItemId: string;
   subItemLabel: string;
   financialYear: FinancialYear;
+  currentUser: UserProfile;
   onNavigateHome: () => void;
   onQuickAction: (actionName: string) => void;
+  onUserDatabaseUpdated?: () => void;
 }
 
 export const MainContent: React.FC<MainContentProps> = ({
@@ -26,10 +47,77 @@ export const MainContent: React.FC<MainContentProps> = ({
   activeSubItemId,
   subItemLabel,
   financialYear,
+  currentUser,
   onNavigateHome,
   onQuickAction,
+  onUserDatabaseUpdated,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [addRecordTrigger, setAddRecordTrigger] = useState(0);
+
+  // 1. RBAC Action Restrictions on current active sub-page
+  const canAdd = checkUserPermission(currentUser, activeSubItemId, 'add');
+  const canEdit = checkUserPermission(currentUser, activeSubItemId, 'edit');
+  const canDelete = checkUserPermission(currentUser, activeSubItemId, 'delete');
+
+  // Centralized Add, Edit, Delete Handlers with Central Activity Logging
+  const handleAddNewRecord = () => {
+    if (!canAdd) {
+      onQuickAction(`Access Denied: You do not have [Add] permission for ${subItemLabel}`);
+      return;
+    }
+
+    // When on Directory & Family HOF, open the Add HOF modal directly
+    if (
+      activeSubItemId === 'directory-hof' ||
+      (activeCategoryId === 'member-master' && subItemLabel.toLowerCase().includes('directory'))
+    ) {
+      setAddRecordTrigger((prev) => prev + 1);
+      window.dispatchEvent(new CustomEvent('jamat_open_create_hof'));
+      return;
+    }
+
+    appendActivityLog(
+      currentUser.username,
+      categoryTitle,
+      subItemLabel,
+      'ADD',
+      `Officer @${currentUser.username} initiated new record creation in [${subItemLabel}].`
+    );
+    onQuickAction(`New record created in ${subItemLabel}`);
+  };
+
+  const handleEditRecord = (recordTitle: string) => {
+    if (!canEdit) {
+      onQuickAction(`Access Denied: You do not have [Edit] permission for ${subItemLabel}`);
+      return;
+    }
+    appendActivityLog(
+      currentUser.username,
+      categoryTitle,
+      subItemLabel,
+      'EDIT',
+      `Officer @${currentUser.username} edited record "${recordTitle}" in [${subItemLabel}].`
+    );
+    onQuickAction(`Updated ${recordTitle} in ${subItemLabel}`);
+  };
+
+  const handleDeleteRecord = (recordTitle: string) => {
+    if (!canDelete) {
+      onQuickAction(`Access Denied: You do not have [Delete] permission for ${subItemLabel}`);
+      return;
+    }
+    if (window.confirm(`Are you sure you want to delete "${recordTitle}" from ${subItemLabel}?`)) {
+      appendActivityLog(
+        currentUser.username,
+        categoryTitle,
+        subItemLabel,
+        'DELETE',
+        `Officer @${currentUser.username} deleted record "${recordTitle}" from [${subItemLabel}].`
+      );
+      onQuickAction(`Deleted ${recordTitle} from ${subItemLabel}`);
+    }
+  };
 
   return (
     <main className="flex-1 min-w-0 bg-[#FEF3C7] overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8">
@@ -56,12 +144,12 @@ export const MainContent: React.FC<MainContentProps> = ({
             </p>
           </div>
 
-          {/* Action CTAs — wraps on mobile */}
+          {/* Action CTAs with RBAC Enforcement */}
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
-              onClick={() => onQuickAction('Refresh data')}
-              className="inline-flex items-center space-x-1.5 px-3 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors shadow-2xs focus:ring-2 focus:ring-[#EAB308]/30 min-h-[44px]"
+              onClick={() => onQuickAction('Data synchronized')}
+              className="inline-flex items-center space-x-1.5 px-3 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors shadow-2xs focus:ring-2 focus:ring-[#EAB308]/30 min-h-[44px] cursor-pointer"
             >
               <RefreshCw className="w-3.5 h-3.5 text-slate-600" />
               <span>Sync</span>
@@ -69,248 +157,291 @@ export const MainContent: React.FC<MainContentProps> = ({
 
             <button
               type="button"
-              onClick={() => onQuickAction(`Export ${subItemLabel}`)}
-              className="inline-flex items-center space-x-1.5 px-3 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors shadow-2xs focus:ring-2 focus:ring-[#EAB308]/30 min-h-[44px]"
+              onClick={() => {
+                // Dispatch module-specific real export events; fall back to toast for others
+                if (activeSubItemId === 'thaali-status') {
+                  window.dispatchEvent(new CustomEvent('jamat_export_thaali_status'));
+                } else {
+                  onQuickAction(`Exported ${subItemLabel} summary`);
+                }
+              }}
+              className="inline-flex items-center space-x-1.5 px-3 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors shadow-2xs focus:ring-2 focus:ring-[#EAB308]/30 min-h-[44px] cursor-pointer"
             >
               <Download className="w-3.5 h-3.5 text-slate-600" />
               <span>Export</span>
             </button>
 
-            {/* Primary Accent CTA */}
-            <button
-              type="button"
-              onClick={() => onQuickAction(`New ${subItemLabel} Record`)}
-              className="inline-flex items-center space-x-1.5 px-4 py-2 text-xs font-black text-[#0F172A] bg-[#EAB308] hover:bg-[#D4AF37] active:bg-[#CA8A04] rounded-lg transition-all shadow-[0_2px_8px_rgba(234,179,8,0.35)] focus:ring-2 focus:ring-[#EAB308]/50 min-h-[44px]"
-            >
-              <Plus className="w-4 h-4 text-[#0F172A] stroke-[2.8]" />
-              <span>Create New Record</span>
-            </button>
+            {/* Granular "Add New" Button with RBAC Enforcement */}
+            {canAdd ? (
+              <button
+                type="button"
+                onClick={handleAddNewRecord}
+                className="inline-flex items-center space-x-1.5 px-4 py-2 text-xs font-black text-[#0F172A] bg-[#EAB308] hover:bg-[#D4AF37] active:bg-[#CA8A04] rounded-lg transition-all shadow-[0_2px_8px_rgba(234,179,8,0.35)] focus:ring-2 focus:ring-[#EAB308]/50 min-h-[44px] cursor-pointer"
+              >
+                <Plus className="w-4 h-4 text-[#0F172A] stroke-[2.8]" />
+                <span>Create New Record</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                disabled
+                title="Janab Add Clearance Required"
+                className="inline-flex items-center space-x-1.5 px-3.5 py-2 text-xs font-bold text-slate-400 bg-slate-200/80 border border-slate-300/80 rounded-lg cursor-not-allowed opacity-80 min-h-[44px]"
+              >
+                <Lock className="w-3.5 h-3.5 text-slate-400" />
+                <span>Add Restricted</span>
+              </button>
+            )}
           </div>
         </div>
 
         {/* Dynamic Route Content Views */}
-        {renderContentSection(
-          activeCategoryId,
-          activeSubItemId,
+        {renderContentSection({
+          categoryId: activeCategoryId,
+          subItemId: activeSubItemId,
           subItemLabel,
+          categoryTitle,
           searchQuery,
           setSearchQuery,
-          onQuickAction
-        )}
+          onQuickAction,
+          currentUser,
+          onUserDatabaseUpdated,
+          canEdit,
+          canDelete,
+          onEditRecord: handleEditRecord,
+          onDeleteRecord: handleDeleteRecord,
+          financialYear,
+          openAddModalTrigger: addRecordTrigger,
+        })}
       </div>
     </main>
   );
 };
 
+interface RenderContext {
+  categoryId: string;
+  subItemId: string;
+  subItemLabel: string;
+  categoryTitle: string;
+  searchQuery: string;
+  setSearchQuery: (v: string) => void;
+  onQuickAction: (actionName: string) => void;
+  currentUser: UserProfile;
+  onUserDatabaseUpdated?: () => void;
+  canEdit: boolean;
+  canDelete: boolean;
+  onEditRecord: (title: string) => void;
+  onDeleteRecord: (title: string) => void;
+  financialYear: FinancialYear;
+  openAddModalTrigger?: number;
+}
+
 // Helper to render specialized contextual panels
-function renderContentSection(
-  categoryId: string,
-  subItemId: string,
-  subItemLabel: string,
-  searchQuery: string,
-  setSearchQuery: (v: string) => void,
-  onQuickAction: (actionName: string) => void
-) {
-  // 1. Main Overview Dashboard
-  if (categoryId === 'dashboard' && subItemId === 'overview') {
-    return <DashboardView onQuickAction={onQuickAction} />;
+function renderContentSection(ctx: RenderContext) {
+  const {
+    categoryId,
+    subItemId,
+    subItemLabel,
+    onQuickAction,
+    currentUser,
+    onUserDatabaseUpdated,
+    canEdit,
+    canDelete,
+    onEditRecord,
+    onDeleteRecord,
+    financialYear,
+    openAddModalTrigger,
+  } = ctx;
+
+  // 1. Roles & Permissions RBAC Module
+  if (subItemId === 'roles-permissions') {
+    return (
+      <RolesPermissionsModule
+        currentUser={currentUser}
+        onUserDatabaseUpdated={onUserDatabaseUpdated}
+        showToast={onQuickAction}
+      />
+    );
   }
 
-  // 2. Member Master / ITS Lookup
-  if (subItemId === 'its-lookup' || categoryId === 'member-master') {
+  // 1b. Change Password (System Settings)
+  if (subItemId === 'change-password') {
+    return (
+      <ChangePasswordPage
+        currentUser={currentUser}
+        showToast={onQuickAction}
+      />
+    );
+  }
+
+  // 2. Dashboard Section (Main Overview & Faiz Live Command Center)
+  if (categoryId === 'dashboard') {
+    if (subItemId === 'faiz-dashboard') {
+      return (
+        <FaizDashboard
+          financialYear={financialYear}
+          currentUser={currentUser}
+          onQuickAction={onQuickAction}
+        />
+      );
+    }
+    return (
+      <MainOverviewDashboard
+        financialYear={financialYear}
+        currentUser={currentUser}
+        onQuickAction={onQuickAction}
+      />
+    );
+  }
+
+  // 3. Member & Area Master
+  if (categoryId === 'member-master') {
+    return (
+      <MemberMasterModule
+        currentUser={currentUser}
+        activeSubItemId={subItemId}
+        subItemLabel={subItemLabel}
+        showToast={onQuickAction}
+        openAddModalTrigger={openAddModalTrigger}
+      />
+    );
+  }
+
+  // 4. FMB & Takhmeen
+  if (categoryId === 'fmb-takhmeen') {
+    return (
+      <FmbTakhmeenModule
+        currentUser={currentUser}
+        activeSubItemId={subItemId}
+        subItemLabel={subItemLabel}
+        financialYear={financialYear}
+        showToast={onQuickAction}
+      />
+    );
+  }
+
+  // 5. Sabeel Management
+  if (categoryId === 'sabeel-management') {
+    return (
+      <SabeelManagementModule
+        currentUser={currentUser}
+        activeSubItemId={subItemId}
+        subItemLabel={subItemLabel}
+        financialYear={financialYear}
+        showToast={onQuickAction}
+      />
+    );
+  }
+
+  // 6. Services (Hall Bookings, Ziyarat, Madrasa)
+  if (categoryId === 'services' && subItemId === 'hall-booking') {
+    return (
+      <HallBookingModule
+        currentUser={currentUser}
+        subItemLabel={subItemLabel}
+        financialYear={financialYear}
+        showToast={onQuickAction}
+      />
+    );
+  }
+
+  if (categoryId === 'services') {
     return (
       <div className="bg-white border border-[#D97706]/30 rounded-xl p-4 sm:p-5 lg:p-6 shadow-md space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
           <div>
-            <h2 className="text-base font-bold text-[#0F172A]">ITS Mumineen Verification & Directory</h2>
-            <p className="text-xs text-slate-500">Query and verify ITS 8-digit identification records against Dawat central registry</p>
-          </div>
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
-            <div className="relative w-full sm:w-64">
-              <Search className="w-4 h-4 absolute left-3 top-3 sm:top-2.5 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Enter 8-digit ITS or Name..."
-                className="pl-9 pr-3 py-2 text-xs bg-[#F8FAFC] border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EAB308]/40 w-full font-mono text-slate-900 min-h-[44px] sm:min-h-0"
-              />
-            </div>
-            <button
-              type="button"
-              onClick={() => onQuickAction('ITS Lookup Search')}
-              className="px-4 py-2 text-xs font-black bg-[#EAB308] hover:bg-[#D4AF37] text-[#0F172A] rounded-lg transition-colors shadow-xs min-h-[44px] sm:min-h-0 flex items-center justify-center shrink-0"
-            >
-              Verify ITS
-            </button>
+            <h2 className="text-base font-bold text-[#0F172A] flex items-center space-x-2">
+              <Calendar className="w-5 h-5 text-amber-600" />
+              <span>{subItemLabel} — Community Services</span>
+            </h2>
+            <p className="text-xs text-slate-500">
+              Mawaid hall reservations, ziyarat convoy clearance tracking, and madrasa miqaat passes.
+            </p>
           </div>
         </div>
 
-        {/* Detailed Member Card Example */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="p-4 rounded-xl border border-[#D97706]/30 bg-white space-y-3 shadow-sm">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-[#0F172A]">Head of Family (HOF)</span>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#FEF3C7] text-[#B45309]">HOF #324</span>
-            </div>
-            <div className="space-y-1">
-              <p className="text-sm font-bold text-[#0F172A]">Mulla Shabbir Bhai Fakhri</p>
-              <p className="text-xs text-slate-500 font-mono">ITS: 30489122</p>
-              <p className="text-xs text-slate-600">Building 4, Flat 302, Burhani Park</p>
-            </div>
-            <div className="pt-2 border-t border-slate-200 flex justify-between text-xs">
-              <span className="text-slate-500">Thaali: #042</span>
-              <span className="text-[#059669] font-bold">Active</span>
-            </div>
-          </div>
+        <div className="space-y-3">
+          {[
+            { event: 'Ziyarat Karbala Moalla Convoy Batch #4', date: '1447-04-12', status: 'Registration Open' },
+            { event: 'Mawaid Hall Jaman — Mulla Taher Walima', date: '1447-03-24', status: 'Deposit Paid' },
+            { event: 'MSB Annual Madrasa Miqaat Exams', date: '1447-05-01', status: 'Scheduled' },
+          ].map((item, i) => (
+            <div
+              key={i}
+              className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs"
+            >
+              <div>
+                <span className="font-bold text-slate-900">{item.event}</span>
+                <p className="text-slate-500 mt-0.5 font-mono">Date: {item.date}</p>
+              </div>
+              <div className="flex items-center space-x-3">
+                <span className="px-2.5 py-1 rounded bg-amber-100 text-amber-900 font-bold text-[11px]">
+                  {item.status}
+                </span>
 
-          <div className="p-4 rounded-xl border border-[#D97706]/30 bg-white space-y-3 shadow-sm">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-[#0F172A]">Family Member (FM)</span>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-200 text-slate-700">FM #01</span>
-            </div>
-            <div className="space-y-1">
-              <p className="text-sm font-bold text-[#0F172A]">Fatema Bai Fakhri</p>
-              <p className="text-xs text-slate-500 font-mono">ITS: 30489123</p>
-              <p className="text-xs text-slate-600">Wife of HOF</p>
-            </div>
-            <div className="pt-2 border-t border-slate-200 flex justify-between text-xs">
-              <span className="text-slate-500">Sabil Link: Unified</span>
-              <span className="text-[#B45309] font-bold">Linked</span>
-            </div>
-          </div>
+                <div className="flex items-center space-x-1">
+                  {canEdit ? (
+                    <button
+                      type="button"
+                      onClick={() => onEditRecord(item.event)}
+                      className="p-1.5 text-slate-600 hover:text-amber-700 hover:bg-amber-100 rounded-md cursor-pointer"
+                    >
+                      <Edit className="w-3.5 h-3.5" />
+                    </button>
+                  ) : (
+                    <span className="p-1.5 text-slate-300" title="Edit Restricted">
+                      <Lock className="w-3.5 h-3.5" />
+                    </span>
+                  )}
 
-          <div className="p-4 rounded-xl border border-[#D97706]/30 bg-white space-y-3 shadow-sm">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-[#0F172A]">Family Member (FM)</span>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-200 text-slate-700">FM #02</span>
+                  {canDelete ? (
+                    <button
+                      type="button"
+                      onClick={() => onDeleteRecord(item.event)}
+                      className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-100 rounded-md cursor-pointer"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  ) : (
+                    <span className="p-1.5 text-slate-300" title="Delete Restricted">
+                      <Lock className="w-3.5 h-3.5" />
+                    </span>
+                  )}
+                </div>
+              </div>
             </div>
-            <div className="space-y-1">
-              <p className="text-sm font-bold text-[#0F172A]">Ali Asghar Fakhri</p>
-              <p className="text-xs text-slate-500 font-mono">ITS: 30489124</p>
-              <p className="text-xs text-slate-600">Son (Student - MSB)</p>
-            </div>
-            <div className="pt-2 border-t border-slate-200 flex justify-between text-xs">
-              <span className="text-slate-500">MSB ID: 10492</span>
-              <span className="text-[#059669] font-bold">Active</span>
-            </div>
-          </div>
+          ))}
         </div>
       </div>
     );
   }
 
-  // 3. Financial & Takhmeen
-  if (categoryId === 'financial-takhmeen') {
+  // 7. Payments & Receipts Engine — Executive Reports Module
+  if (categoryId === 'payments-receipts') {
     return (
-      <div className="bg-white border border-[#D97706]/30 rounded-xl p-4 sm:p-5 lg:p-6 shadow-md space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
-          <div>
-            <h2 className="text-base font-bold text-[#0F172A]">Financial Ledger & Takhmeen Assessment</h2>
-            <p className="text-xs text-slate-500">Manage Takhmeen commitments, receipt sequences, and income/expense allocations</p>
-          </div>
-          <div className="flex items-center space-x-2 w-full sm:w-auto">
-            <button
-              type="button"
-              onClick={() => onQuickAction('Add Income Entry')}
-              className="w-full sm:w-auto px-3.5 py-2 text-xs font-black bg-[#EAB308] hover:bg-[#D4AF37] text-[#0F172A] rounded-lg shadow-xs transition-colors min-h-[44px] sm:min-h-0 flex items-center justify-center"
-            >
-              + Record Payment
-            </button>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="p-4 rounded-xl border border-[#D97706]/40 bg-white">
-            <span className="text-xs font-bold text-[#B45309]">Total 1447 Takhmeen Target</span>
-            <p className="text-xl font-black text-[#0F172A] mt-1">₹ 1,10,00,000</p>
-            <p className="text-xs text-[#B45309] font-medium mt-1">320 out of 324 HOF Assessed</p>
-          </div>
-          <div className="p-4 rounded-xl border border-[#059669]/40 bg-white">
-            <span className="text-xs font-bold text-[#059669]">Total Collected To Date</span>
-            <p className="text-xl font-black text-[#0F172A] mt-1">₹ 84,60,000</p>
-            <p className="text-xs text-[#059669] font-medium mt-1">76.9% Realization Rate</p>
-          </div>
-          <div className="p-4 rounded-xl border border-[#E11D48]/40 bg-white">
-            <span className="text-xs font-bold text-[#E11D48]">Outstanding Balance</span>
-            <p className="text-xl font-black text-[#E11D48] mt-1">₹ 25,40,000</p>
-            <p className="text-xs text-slate-500 mt-1">4 Takhmeen Waivers Pending</p>
-          </div>
-        </div>
-      </div>
+      <ExecutiveReportsModule
+        currentUser={currentUser}
+        subItemLabel={subItemLabel}
+        subItemId={subItemId}
+        financialYear={financialYear}
+        showToast={(msg) => onQuickAction(msg)}
+      />
     );
   }
 
-  // 4. Faiz & Services
-  if (categoryId === 'faiz-services') {
-    return (
-      <div className="bg-white border border-[#D97706]/30 rounded-xl p-4 sm:p-5 lg:p-6 shadow-md space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
-          <div>
-            <h2 className="text-base font-bold text-[#0F172A]">Faiz al-Mawaid al-Burhaniyah (FMB) Thaali Operations</h2>
-            <p className="text-xs text-slate-500">Thaali distribution status, delivery routes, pause schedules, and hall bookings</p>
-          </div>
-          <div className="flex items-center space-x-2 w-full sm:w-auto">
-            <button
-              type="button"
-              onClick={() => onQuickAction('Manage Thaali Exceptions')}
-              className="w-full sm:w-auto px-3.5 py-2 text-xs font-black bg-[#EAB308] hover:bg-[#D4AF37] text-[#0F172A] rounded-lg shadow-xs transition-colors min-h-[44px] sm:min-h-0 flex items-center justify-center"
-            >
-              Update Thaali Status
-            </button>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="p-4 rounded-xl border border-[#059669]/40 bg-white">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-[#059669]">Active Thaalis</span>
-              <span className="w-2.5 h-2.5 rounded-full bg-[#059669]"></span>
-            </div>
-            <p className="text-2xl font-black text-[#0F172A] mt-2">312</p>
-            <p className="text-xs text-[#059669] mt-1">Receiving daily barakat</p>
-          </div>
-
-          <div className="p-4 rounded-xl border border-[#D97706]/40 bg-white">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-[#D97706]">Paused / Safar</span>
-              <span className="w-2.5 h-2.5 rounded-full bg-[#EAB308]"></span>
-            </div>
-            <p className="text-2xl font-black text-[#0F172A] mt-2">8</p>
-            <p className="text-xs text-[#B45309] mt-1">Scheduled resumption next week</p>
-          </div>
-
-          <div className="p-4 rounded-xl border border-[#E11D48]/40 bg-white">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-[#E11D48]">Blocked / Review</span>
-              <span className="w-2.5 h-2.5 rounded-full bg-[#E11D48]"></span>
-            </div>
-            <p className="text-2xl font-black text-[#E11D48] mt-2">4</p>
-            <p className="text-xs text-rose-600 mt-1">Pending address re-verification</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Fallback for reports, settings, etc.
+  // Fallback module state
   return (
     <div className="bg-white border border-[#D97706]/30 rounded-xl p-6 shadow-md space-y-4">
       <div className="border-b border-slate-100 pb-4">
-        <h2 className="text-base font-bold text-[#0F172A]">{subItemLabel} Module</h2>
-        <p className="text-xs text-slate-500">Standardized ERP administrative sub-system interface</p>
+        <h2 className="text-base font-bold text-[#0F172A]">{subItemLabel}</h2>
+        <p className="text-xs text-slate-500">Administrative sub-system operational view</p>
       </div>
       <div className="p-8 text-center border-2 border-dashed border-slate-200 rounded-lg">
         <ShieldCheck className="w-10 h-10 text-[#EAB308] mx-auto mb-3" />
         <p className="text-sm font-semibold text-slate-800">Module Initialized: {subItemLabel}</p>
         <p className="text-xs text-slate-500 max-w-md mx-auto mt-1">
-          Active session verified for Super Admin. Data synchronization and audit hooks are armed.
+          Permission verified. Active session authorized for @{currentUser.username}.
         </p>
-        <button
-          type="button"
-          onClick={() => onQuickAction(`Launch ${subItemLabel}`)}
-          className="mt-4 px-4 py-2 text-xs font-black bg-[#EAB308] hover:bg-[#D4AF37] text-[#0F172A] rounded-lg shadow-xs transition-colors"
-        >
-          Initialize {subItemLabel} Actions
-        </button>
       </div>
     </div>
   );

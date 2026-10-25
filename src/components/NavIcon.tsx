@@ -6,6 +6,8 @@ import {
   UtensilsCrossed,
   LineChart,
   Sliders,
+  Calendar,
+  Receipt,
   FolderOpen
 } from 'lucide-react';
 
@@ -26,6 +28,10 @@ export const NavIcon: React.FC<NavIconProps> = ({ name, className = 'w-4 h-4' })
       return <UtensilsCrossed className={className} />;
     case 'LineChart':
       return <LineChart className={className} />;
+    case 'Calendar':
+      return <Calendar className={className} />;
+    case 'Receipt':
+      return <Receipt className={className} />;
     case 'Sliders':
       return <Sliders className={className} />;
     default:

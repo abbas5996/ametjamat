@@ -173,13 +173,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
                         {subItem.badge && (
                           <span
-                            className={`ml-1.5 text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider shrink-0 min-h-[18px] flex items-center ${
-                              isSubActive
+                            className={`ml-1.5 text-[9px] px-2 py-0.5 rounded-full font-extrabold uppercase tracking-wider shrink-0 min-h-[18px] flex items-center gap-1.5 ${
+                              subItem.badge.toLowerCase() === 'live'
+                                ? 'bg-emerald-100 text-emerald-800 border border-emerald-400/80 shadow-[0_0_10px_rgba(16,185,129,0.35)]'
+                                : isSubActive
                                 ? 'bg-[#FACC15] text-[#1E293B]'
                                 : 'bg-[#FEF9C3] text-[#B45309] border border-[#FDE047]'
                             }`}
                           >
-                            {subItem.badge}
+                            {subItem.badge.toLowerCase() === 'live' && (
+                              <span className="relative flex h-1.5 w-1.5">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-600"></span>
+                              </span>
+                            )}
+                            <span>{subItem.badge}</span>
                           </span>
                         )}
                       </button>
