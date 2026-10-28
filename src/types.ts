@@ -43,7 +43,7 @@ export interface ActivityLogEntry {
   username: string;
   department: string;
   subpage: string;
-  actionType: 'ADD' | 'EDIT' | 'DELETE' | 'VIEW' | 'CREATED_USER' | 'UPDATED_PERMISSIONS' | 'DELETED_USER' | 'ADMIN_RESET_PASSWORD';
+  actionType: 'ADD' | 'EDIT' | 'DELETE' | 'VIEW' | 'CREATED_USER' | 'UPDATED_PERMISSIONS' | 'DELETED_USER' | 'ADMIN_RESET_PASSWORD' | 'PAYMENT' | 'CANCEL_RECEIPT';
   details: string;
 }
 
@@ -205,7 +205,7 @@ export interface FmbCollectionEntry {
 // ================= SABEEL MANAGEMENT MODULE TYPES =================
 export type SabeelPaymentMode = 'Cash' | 'UPI' | 'Bank Transfer' | 'Cheque';
 export type SabeelAccountStatus = 'Settled' | 'Partial' | 'Pending' | 'Exempt';
-export type SabeelCategory = 'Residential' | 'Commercial' | 'Special';
+export type SabeelCategory = 'Residential' | 'Commercial' | 'Special' | string;
 
 export interface SabeelLedgerRecord {
   id: string;
@@ -223,6 +223,25 @@ export interface SabeelLedgerRecord {
   notes?: string;
   createdAt: string;
   updatedAt: string;
+  // Extended fields used by production subpages
+  memberName?: string;
+  sabeelNumber?: string;
+  mohallah?: string;
+  grade?: string;
+  sabeelType?: string;
+  annualPledged?: number;
+  totalAllocated?: number;
+  totalPaid?: number;
+  giftAidEligible?: boolean;
+  isActive?: boolean;
+  closedDate?: string;
+  closedBy?: string;
+  closureReason?: string;
+  waivedAmount?: number;
+  waivedBy?: string;
+  waiverDate?: string;
+  waiverReason?: string;
+  contactPhone?: string;
 }
 
 export type SabeelTransactionType = 'PAYMENT' | 'TRANSFER_IN' | 'TRANSFER_OUT' | 'ADJUSTMENT';
@@ -246,6 +265,15 @@ export interface SabeelTransactionEntry {
   toHofName?: string;
   collectedBy: string;
   createdAt: string;
+  // Extended fields used by production subpages
+  paymentDate?: string;
+  amountPaid?: number;
+  balanceDueAfterPayment?: number;
+  receivedBy?: string;
+  mohallah?: string;
+  memberName?: string;
+  chequeNo?: string;
+  bankName?: string;
 }
 
 // ================= HALL BOOKING & FACILITY MANAGEMENT TYPES =================

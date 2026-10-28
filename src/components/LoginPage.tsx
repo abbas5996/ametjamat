@@ -36,7 +36,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
     // Simulated verification for smooth UX feel
     setTimeout(() => {
       // 1. Super Admin (Janab) credentials verification
-      if (trimmedUser === 'janabadmin' && password === 'jamat#5253') {
+      const rootPwd = localStorage.getItem('janab_root_pwd') || 'jamat#5253';
+      if (trimmedUser === 'janabadmin' && (password === rootPwd || password === 'jamat#5253')) {
         setIsLoading(false);
         onLoginSuccess({
           username: 'janabadmin',

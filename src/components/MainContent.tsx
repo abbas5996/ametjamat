@@ -22,10 +22,29 @@ import { FaizDashboard } from './dashboard/FaizDashboard';
 import { RolesPermissionsModule } from './RolesPermissionsModule';
 import { ChangePasswordPage } from './ChangePasswordPage';
 import { MemberMasterModule } from './member-master/MemberMasterModule';
+import { MohallaManagementModule } from './member-master/MohallaManagementModule';
+import { MumineenModule } from './mumineen/MumineenModule';
 import { FmbTakhmeenModule } from './fmb-takhmeen/FmbTakhmeenModule';
-import { SabeelManagementModule } from './sabeel-management/SabeelManagementModule';
+import { SabeelManagementModuleV2 } from './sabeel-management/SabeelManagementModuleV2';
+import { HolidayManagementModule } from './HolidayManagementModule';
 import { HallBookingModule } from './hall-booking/HallBookingModule';
 import { ExecutiveReportsModule } from './executive-reports/ExecutiveReportsModule';
+import { FaizHubModule } from './faiz-hub/FaizHubModule';
+import { ThaaliSystemModule } from './thaali-system/ThaaliSystemModule';
+import { MenuManagementModule } from './menu-management/MenuManagementModule';
+import { StockManagementModule } from './stock-management/StockManagementModule';
+import { VoluntaryContributionModule } from './voluntary-contributions/VoluntaryContributionModule';
+import { CommunitySchemesModule } from './community-schemes/CommunitySchemesModule';
+import { WajebaatModule } from './wajebaat/WajebaatModule';
+import { RentManagementModule } from './rent-management/RentManagementModule';
+import { QardanHasanahModule } from './qardan-hasanah/QardanHasanahModule';
+import { AccountsManagerModule } from './accounts-manager/AccountsManagerModule';
+import { MadresaModule } from './madresa/MadresaModule';
+import { MiqaatAsharaModule } from './miqaat-ashara/MiqaatAsharaModule';
+import { CommitteeTrustModule } from './committee-trust/CommitteeTrustModule';
+import { UmurFrameworkModule } from './umur-framework/UmurFrameworkModule';
+import { SpecialCommunityModules } from './special-modules/SpecialCommunityModules';
+import { SystemSettingsMasterModule } from './system-settings/SystemSettingsMasterModule';
 import { FinancialYear, UserProfile } from '../types';
 import { checkUserPermission, appendActivityLog } from '../utils/rbac';
 
@@ -206,6 +225,7 @@ export const MainContent: React.FC<MainContentProps> = ({
           onQuickAction,
           currentUser,
           onUserDatabaseUpdated,
+          canAdd,
           canEdit,
           canDelete,
           onEditRecord: handleEditRecord,
@@ -228,6 +248,7 @@ interface RenderContext {
   onQuickAction: (actionName: string) => void;
   currentUser: UserProfile;
   onUserDatabaseUpdated?: () => void;
+  canAdd: boolean;
   canEdit: boolean;
   canDelete: boolean;
   onEditRecord: (title: string) => void;
@@ -245,6 +266,7 @@ function renderContentSection(ctx: RenderContext) {
     onQuickAction,
     currentUser,
     onUserDatabaseUpdated,
+    canAdd,
     canEdit,
     canDelete,
     onEditRecord,
@@ -274,6 +296,17 @@ function renderContentSection(ctx: RenderContext) {
     );
   }
 
+  // 1c. Add Holiday / Weekend Manager (System Settings)
+  if (subItemId === 'add-holiday') {
+    return (
+      <HolidayManagementModule
+        currentUser={currentUser}
+        activeSubItemId={subItemId}
+        showToast={onQuickAction}
+      />
+    );
+  }
+
   // 2. Dashboard Section (Main Overview & Faiz Live Command Center)
   if (categoryId === 'dashboard') {
     if (subItemId === 'faiz-dashboard') {
@@ -294,6 +327,22 @@ function renderContentSection(ctx: RenderContext) {
     );
   }
 
+  // 3a. Mumineen Master Module (All 13 Sub-Pages)
+  if (categoryId === 'mumineen') {
+    return (
+      <MumineenModule
+        currentUser={currentUser}
+        activeSubItemId={subItemId}
+        subItemLabel={subItemLabel}
+        financialYear={financialYear}
+        showToast={onQuickAction}
+        canAdd={canAdd}
+        canEdit={canEdit}
+        canDelete={canDelete}
+      />
+    );
+  }
+
   // 3. Member & Area Master
   if (categoryId === 'member-master') {
     return (
@@ -303,6 +352,20 @@ function renderContentSection(ctx: RenderContext) {
         subItemLabel={subItemLabel}
         showToast={onQuickAction}
         openAddModalTrigger={openAddModalTrigger}
+      />
+    );
+  }
+
+  // 3b. Mohalla Management
+  if (categoryId === 'mohalla-management') {
+    return (
+      <MohallaManagementModule
+        currentUser={currentUser}
+        activeSubItemId={subItemId}
+        showToast={onQuickAction}
+        canAdd={canAdd}
+        canEdit={canEdit}
+        canDelete={canDelete}
       />
     );
   }
@@ -320,15 +383,205 @@ function renderContentSection(ctx: RenderContext) {
     );
   }
 
-  // 5. Sabeel Management
+  // 5. Sabeel Management (Complete 7 Sub-Pages V2)
   if (categoryId === 'sabeel-management') {
     return (
-      <SabeelManagementModule
+      <SabeelManagementModuleV2
         currentUser={currentUser}
         activeSubItemId={subItemId}
         subItemLabel={subItemLabel}
         financialYear={financialYear}
         showToast={onQuickAction}
+      />
+    );
+  }
+
+  // 5b. Faiz Module (FMB) — 8 Sub-Pages
+  if (categoryId === 'faiz-hub') {
+    return (
+      <FaizHubModule
+        currentUser={currentUser}
+        activeSubItemId={subItemId}
+        subItemLabel={subItemLabel}
+        financialYear={financialYear}
+        showToast={onQuickAction}
+        canAdd={canAdd}
+        canEdit={canEdit}
+        canDelete={canDelete}
+      />
+    );
+  }
+
+  // 5c. Thaali Management System (FMB) — 9 Sub-Pages
+  if (categoryId === 'thaali-management') {
+    return (
+      <ThaaliSystemModule
+        currentUser={currentUser}
+        activeSubItemId={subItemId}
+        subItemLabel={subItemLabel}
+        financialYear={financialYear}
+        showToast={onQuickAction}
+        canAdd={canAdd}
+        canEdit={canEdit}
+        canDelete={canDelete}
+      />
+    );
+  }
+
+  // 5d. Menu Management — 7 Sub-Pages
+  if (categoryId === 'menu-management') {
+    return (
+      <MenuManagementModule
+        currentUser={currentUser}
+        activeSubItemId={subItemId}
+        financialYear={financialYear}
+        showToast={onQuickAction}
+        canAdd={canAdd}
+        canEdit={canEdit}
+        canDelete={canDelete}
+      />
+    );
+  }
+
+  // 5e. Stock Management — 7 Sub-Pages
+  if (categoryId === 'stock-management') {
+    return (
+      <StockManagementModule
+        currentUser={currentUser}
+        activeSubItemId={subItemId}
+        financialYear={financialYear}
+        showToast={onQuickAction}
+        canAdd={canAdd}
+        canEdit={canEdit}
+        canDelete={canDelete}
+      />
+    );
+  }
+
+  // 5f. Voluntary Contribution (Hadiyah / Sadaqah / Niyaz)
+  if (categoryId === 'voluntary-contribution') {
+    return (
+      <VoluntaryContributionModule
+        currentUser={currentUser}
+        activeSubItemId={subItemId}
+        subItemLabel={subItemLabel}
+        financialYear={financialYear}
+        showToast={onQuickAction}
+        canAdd={canAdd}
+        canEdit={canEdit}
+        canDelete={canDelete}
+      />
+    );
+  }
+
+  // 5g. Community Schemes (Taher, Mohammedii, Husain, Hoob, Corpus, Sarkari Lagat)
+  if (categoryId === 'community-schemes') {
+    return (
+      <CommunitySchemesModule
+        currentUser={currentUser}
+        activeSubItemId={subItemId}
+        subItemLabel={subItemLabel}
+        financialYear={financialYear}
+        showToast={onQuickAction}
+        canAdd={canAdd}
+        canEdit={canEdit}
+        canDelete={canDelete}
+      />
+    );
+  }
+
+  // 5h. Wajebaat Management (Khums / Zakat / Fitrah)
+  if (categoryId === 'wajebaat') {
+    return (
+      <WajebaatModule
+        currentUser={currentUser}
+        activeSubItemId={subItemId}
+        subItemLabel={subItemLabel}
+        financialYear={financialYear}
+        showToast={onQuickAction}
+        canAdd={canAdd}
+        canEdit={canEdit}
+        canDelete={canDelete}
+      />
+    );
+  }
+
+  // 5i. Rent Management (Jamaat Estate & Leases)
+  if (categoryId === 'rent-management') {
+    return (
+      <RentManagementModule
+        currentUser={currentUser}
+        activeSubItemId={subItemId}
+        subItemLabel={subItemLabel}
+        financialYear={financialYear}
+        showToast={onQuickAction}
+        canAdd={canAdd}
+        canEdit={canEdit}
+        canDelete={canDelete}
+      />
+    );
+  }
+
+  // 5j. Qardan Hasanah (Qard-e-Hasana Loan Trust)
+  if (categoryId === 'qardan-hasanah') {
+    return (
+      <QardanHasanahModule
+        currentUser={currentUser}
+        activeSubItemId={subItemId}
+        subItemLabel={subItemLabel}
+        financialYear={financialYear}
+        showToast={onQuickAction}
+        canAdd={canAdd}
+        canEdit={canEdit}
+        canDelete={canDelete}
+      />
+    );
+  }
+
+  // 5k. Accounts Manager (Double-Entry Financial Accounting)
+  if (categoryId === 'accounts-manager') {
+    return (
+      <AccountsManagerModule
+        currentUser={currentUser}
+        activeSubItemId={subItemId}
+        subItemLabel={subItemLabel}
+        financialYear={financialYear}
+        showToast={onQuickAction}
+        canAdd={canAdd}
+        canEdit={canEdit}
+        canDelete={canDelete}
+      />
+    );
+  }
+
+  // 5l. Madresa Module (Al-Madrasa al-Saifiyah)
+  if (categoryId === 'madresa-module') {
+    return (
+      <MadresaModule
+        currentUser={currentUser}
+        activeSubItemId={subItemId}
+        subItemLabel={subItemLabel}
+        financialYear={financialYear}
+        showToast={onQuickAction}
+        canAdd={canAdd}
+        canEdit={canEdit}
+        canDelete={canDelete}
+      />
+    );
+  }
+
+  // 5m. Miqaat Management & Ashara Ohbat
+  if (categoryId === 'miqaat-ashara') {
+    return (
+      <MiqaatAsharaModule
+        currentUser={currentUser}
+        activeSubItemId={subItemId}
+        subItemLabel={subItemLabel}
+        financialYear={financialYear}
+        showToast={onQuickAction}
+        canAdd={canAdd}
+        canEdit={canEdit}
+        canDelete={canDelete}
       />
     );
   }
@@ -425,6 +678,73 @@ function renderContentSection(ctx: RenderContext) {
         subItemId={subItemId}
         financialYear={financialYear}
         showToast={(msg) => onQuickAction(msg)}
+      />
+    );
+  }
+
+  // 8. Committee & Trust Management (Part 4)
+  if (categoryId === 'committee-trust') {
+    return (
+      <CommitteeTrustModule
+        currentUser={currentUser}
+        activeSubItemId={subItemId}
+        subItemLabel={subItemLabel}
+        financialYear={financialYear}
+        showToast={onQuickAction}
+        canAdd={canAdd}
+        canEdit={canEdit}
+        canDelete={canDelete}
+      />
+    );
+  }
+
+  // 9. 12 Umur Departmental Executive Framework (Part 4)
+  if (categoryId === 'umur-framework') {
+    return (
+      <UmurFrameworkModule
+        currentUser={currentUser}
+        activeSubItemId={subItemId}
+        subItemLabel={subItemLabel}
+        financialYear={financialYear}
+        showToast={onQuickAction}
+        canAdd={canAdd}
+        canEdit={canEdit}
+        canDelete={canDelete}
+      />
+    );
+  }
+
+  // 10. Special Community Modules (Safar, Haj, Mazar, Appointments & Messaging) (Part 4)
+  if (
+    categoryId === 'safar-mubarak' ||
+    categoryId === 'haj-mazar' ||
+    categoryId === 'appointment-messaging'
+  ) {
+    return (
+      <SpecialCommunityModules
+        currentUser={currentUser}
+        activeSubItemId={subItemId}
+        subItemLabel={subItemLabel}
+        financialYear={financialYear}
+        showToast={onQuickAction}
+        canAdd={canAdd}
+        canEdit={canEdit}
+        canDelete={canDelete}
+      />
+    );
+  }
+
+  // 11. System Settings & Activity Logs Master (Part 4)
+  if (categoryId === 'system-settings') {
+    return (
+      <SystemSettingsMasterModule
+        currentUser={currentUser}
+        activeSubItemId={subItemId}
+        financialYear={financialYear}
+        showToast={onQuickAction}
+        canAdd={canAdd}
+        canEdit={canEdit}
+        canDelete={canDelete}
       />
     );
   }

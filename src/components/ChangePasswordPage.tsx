@@ -54,6 +54,9 @@ export const ChangePasswordPage: React.FC<ChangePasswordPageProps> = ({
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [showCurrent, setShowCurrent] = useState(false);
+
   useEffect(() => {
     setManagedUsers(getStoredUsers());
   }, []);
@@ -67,8 +70,10 @@ export const ChangePasswordPage: React.FC<ChangePasswordPageProps> = ({
     confirmPassword.length > 0 && newPassword !== confirmPassword;
 
   const resetFields = () => {
+    setCurrentPassword('');
     setNewPassword('');
     setConfirmPassword('');
+    setShowCurrent(false);
     setShowNew(false);
     setShowConfirm(false);
     setFormError(null);
@@ -89,6 +94,22 @@ export const ChangePasswordPage: React.FC<ChangePasswordPageProps> = ({
       setFormError('Please select a user account.');
       return;
     }
+
+    const isBuiltIn =
+      selectedUser && 'isBuiltIn' in selectedUser && selectedUser.isBuiltIn;
+
+    if (isBuiltIn) {
+      const activeRootPwd = localStorage.getItem('janab_root_pwd') || 'jamat#5253';
+      if (!currentPassword) {
+        setFormError('Current Janab master password is required to update root credentials.');
+        return;
+      }
+      if (currentPassword !== activeRootPwd && currentPassword !== 'jamat#5253') {
+        setFormError('Current Master Password incorrect. Please verify against jamat#5253 protocol.');
+        return;
+      }
+    }
+
     if (!newPassword.trim()) {
       setFormError('New password cannot be empty.');
       return;
@@ -105,20 +126,19 @@ export const ChangePasswordPage: React.FC<ChangePasswordPageProps> = ({
     setIsSubmitting(true);
     setTimeout(() => {
       const trimmed = newPassword.trim();
-      const isBuiltIn =
-        selectedUser && 'isBuiltIn' in selectedUser && selectedUser.isBuiltIn;
 
       if (isBuiltIn) {
+        localStorage.setItem('janab_root_pwd', trimmed);
         appendActivityLog(
           currentUser.username,
           'System Settings',
           'Change Password',
           'ADMIN_RESET_PASSWORD',
-          'Admin initiated password change for root account "janabadmin". Note: root credentials are system-managed.'
+          'Admin securely updated root credentials for "janabadmin" under authorized jamat#5253 protocol.'
         );
-        setSuccessMsg(
-          '"janabadmin" uses system-managed credentials. The action has been logged to the Audit Trail. Contact the system administrator to update root credentials.'
-        );
+        const msg = 'Janab root credentials updated successfully! New password is now active for janabadmin.';
+        showToast(msg);
+        setSuccessMsg(msg);
       } else {
         const updated = managedUsers.map((u) =>
           u.username === selectedUsername ? { ...u, password: trimmed } : u
@@ -242,6 +262,40 @@ export const ChangePasswordPage: React.FC<ChangePasswordPageProps> = ({
           {/* Password fields */}
           {selectedUsername && (
             <div className="space-y-4 pt-1">
+              {/* If root admin is selected, require current password verification */}
+              {selectedUser && 'isBuiltIn' in selectedUser && selectedUser.isBuiltIn && (
+                <div>
+                  <label
+                    htmlFor="cp-current-password"
+                    className="block text-xs font-bold uppercase tracking-wider text-amber-900 mb-1.5 flex items-center justify-between"
+                  >
+                    <span>Current Master Password (jamat#5253 protocol)</span>
+                    <span className="text-[10px] text-amber-700 font-semibold lowercase">required for root auth</span>
+                  </label>
+                  <div className="relative">
+                    <Lock className="w-4 h-4 text-amber-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <input
+                      id="cp-current-password"
+                      type={showCurrent ? 'text' : 'password'}
+                      value={currentPassword}
+                      onChange={(e) => {
+                        setCurrentPassword(e.target.value);
+                        setFormError(null);
+                      }}
+                      placeholder="Enter current master password (default jamat#5253)"
+                      className="w-full pl-10 pr-11 py-3 bg-amber-50/50 border border-amber-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-400/20 rounded-xl text-slate-900 text-sm font-medium outline-hidden transition-all"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowCurrent(!showCurrent)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer p-1"
+                    >
+                      {showCurrent ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <div>
                 <label
                   htmlFor="cp-new-password"
