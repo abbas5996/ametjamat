@@ -108,7 +108,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <nav className="flex-1 overflow-y-auto overflow-x-hidden py-3 px-2 space-y-1 sidebar-scroll">
         {categories.map((category) => {
           const isCategoryActive = activeCategoryId === category.id;
-          const isExpanded = expandedCategories[category.id] ?? true;
+          const isExpanded = expandedCategories[category.id] ?? false;
 
           return (
             <div key={category.id} className="mb-1">
