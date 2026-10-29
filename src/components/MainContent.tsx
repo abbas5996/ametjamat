@@ -86,24 +86,19 @@ export const MainContent: React.FC<MainContentProps> = ({
       return;
     }
 
+    setAddRecordTrigger((prev) => prev + 1);
+
     // When on Directory & Family HOF, open the Add HOF modal directly
     if (
       activeSubItemId === 'directory-hof' ||
       (activeCategoryId === 'member-master' && subItemLabel.toLowerCase().includes('directory'))
     ) {
-      setAddRecordTrigger((prev) => prev + 1);
       window.dispatchEvent(new CustomEvent('jamat_open_create_hof'));
       return;
     }
 
-    appendActivityLog(
-      currentUser.username,
-      categoryTitle,
-      subItemLabel,
-      'ADD',
-      `Officer @${currentUser.username} initiated new record creation in [${subItemLabel}].`
-    );
-    onQuickAction(`New record created in ${subItemLabel}`);
+    // Dispatch generic create event for sub-modules to open their creation forms
+    window.dispatchEvent(new CustomEvent('jamat_open_create_record', { detail: { subItemId: activeSubItemId } }));
   };
 
   const handleEditRecord = (recordTitle: string) => {

@@ -34,9 +34,9 @@ export interface OfficialReceiptData {
 
 // Exact reference voucher from user reference image
 export const DEFAULT_SAMPLE_RECEIPT: OfficialReceiptData = {
-  trustTitle: 'DAWOODI BOHRA JAMAAT TRUST, BURHANIPARK VATWA, AHMEDABAD',
-  trustRegnNo: 'TRUST REGN. NO – B/81',
-  managedBy: 'Managed By: Anjuman e Mufaddal',
+  trustTitle: 'DAWOODI BOHRA JAMAAT TRUST, BURHANIPARK VATWA',
+  trustRegnNo: 'Regn No - B/81',
+  managedBy: 'Managed By Anjuman e Mufaddal',
   accountTitle: 'A/c : Faiz ul Mawaid il Burhaniyah',
   dateStr: '27 Oct 2026',
   receiptNo: '274',
@@ -81,17 +81,30 @@ export const FaizOfficialPrintReceipt: React.FC<Props> = ({
 
   // Recalculate amount in words automatically whenever amount changes
   const computedAmountInWords = useMemo(() => {
-    return numberToWordsIndian(data.amount);
+    return numberToWordsIndian(Number(data.amount) || 0);
   }, [data.amount]);
 
   // Sync when initialData changes from parent
   useEffect(() => {
     if (initialData) {
-      setData(prev => ({
-        ...prev,
-        ...initialData,
-        amountInWords: initialData.amount ? numberToWordsIndian(initialData.amount) : prev.amountInWords
-      }));
+      setData(prev => {
+        const amt = typeof initialData.amount === 'number'
+          ? initialData.amount
+          : (parseFloat(String(initialData.amount)) || prev.amount || 0);
+        return {
+          ...prev,
+          ...initialData,
+          receiptNo: initialData.receiptNo !== undefined && initialData.receiptNo !== null
+            ? (String(initialData.receiptNo).replace(/[^0-9]/g, '') || String(initialData.receiptNo))
+            : (prev.receiptNo || 'N/A'),
+          dateStr: initialData.dateStr || prev.dateStr || '',
+          memberName: (initialData.memberName || prev.memberName || '').toUpperCase(),
+          itsNo: initialData.itsNo || prev.itsNo || '',
+          address: (initialData.address || prev.address || 'BURHANI PARK, VATWA, AHMEDABAD').toUpperCase(),
+          amount: amt,
+          amountInWords: initialData.amountInWords || (amt ? numberToWordsIndian(amt) : prev.amountInWords || ''),
+        };
+      });
     }
   }, [initialData]);
 
@@ -99,11 +112,12 @@ export const FaizOfficialPrintReceipt: React.FC<Props> = ({
   const handleSelectHof = (its: string) => {
     const member = hofs.find(h => h.itsNumber === its);
     if (!member) return;
+    const rawAddress = member.fullAddress || member.address || (member.flatNumber ? `${member.flatNumber}, Burhani Park, Vatwa, Ahmedabad` : '');
     setData(prev => ({
       ...prev,
-      itsNo: member.itsNumber,
-      memberName: member.fullName.toUpperCase(),
-      address: (member.address || `${member.flatNumber || 'Flat'}, Burhani Park, Vatwa, Ahmedabad`).toUpperCase(),
+      itsNo: member.itsNumber || '',
+      memberName: (member.fullName || '').toUpperCase(),
+      address: (rawAddress || 'BURHANI PARK, VATWA, AHMEDABAD').toUpperCase(),
     }));
   };
 
@@ -113,25 +127,32 @@ export const FaizOfficialPrintReceipt: React.FC<Props> = ({
     if (!rec) return;
 
     // Convert date e.g. 2026-10-27 to "27 Oct 2026"
-    let formattedDate = rec.date;
+    let formattedDate = rec.date || '';
     try {
-      const d = new Date(rec.date);
-      if (!isNaN(d.getTime())) {
-        formattedDate = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+      if (rec.date) {
+        const d = new Date(rec.date);
+        if (!isNaN(d.getTime())) {
+          formattedDate = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+        }
       }
     } catch {
       // keep fallback
     }
 
+    const receiptNum = rec.receiptNo
+      ? (String(rec.receiptNo).replace(/[^0-9]/g, '') || String(rec.receiptNo))
+      : 'N/A';
+    const amountVal = typeof rec.amount === 'number' ? rec.amount : (parseFloat(String(rec.amount)) || 0);
+
     setData(prev => ({
       ...prev,
-      receiptNo: rec.receiptNo.replace(/[^0-9]/g, '') || rec.receiptNo,
-      dateStr: formattedDate,
-      itsNo: rec.itsNumber,
-      memberName: rec.hofName.toUpperCase(),
-      amount: rec.amount,
-      amountInWords: numberToWordsIndian(rec.amount),
-      paymentModeStr: rec.paymentMode === 'Cash' ? 'By Cash.' : (rec.paymentMode === 'Cheque' ? 'By Cheque.' : `By ${rec.paymentMode}.`),
+      receiptNo: receiptNum,
+      dateStr: formattedDate || 'N/A',
+      itsNo: rec.itsNumber || '',
+      memberName: (rec.hofName || '').toUpperCase(),
+      amount: amountVal,
+      amountInWords: numberToWordsIndian(amountVal),
+      paymentModeStr: rec.paymentMode === 'Cash' ? 'By Cash.' : (rec.paymentMode === 'Cheque' ? 'By Cheque.' : `By ${rec.paymentMode || 'Cash'}.`),
       purposeTitle: rec.category === 'Takhmeen' ? 'Takhmeen' : (rec.category === 'Hoob' ? 'Hoob' : 'Donation'),
     }));
   };
@@ -496,7 +517,7 @@ export const FaizOfficialPrintReceipt: React.FC<Props> = ({
               {/* Right: In Figures */}
               <div className="flex items-baseline gap-2 shrink-0">
                 <div className="border-b-2 border-black min-w-[110px] text-center font-bold text-[14px] pb-0.5 font-mono">
-                  {data.amount.toFixed(2)}
+                  {(Number(data.amount) || 0).toFixed(2)}
                 </div>
                 <span className="font-serif text-[15px] font-bold whitespace-nowrap" dir="rtl">
                   {data.descriptorRight}

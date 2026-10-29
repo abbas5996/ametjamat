@@ -606,14 +606,26 @@ export const FaizReceiptManagementSubpage: React.FC<Props> = ({
                       </td>
                       <td className="py-2.5 px-3 font-mono text-slate-600 text-[11px]">{item.issuedBy}</td>
                       <td className="py-2.5 px-3 text-center">
-                        <button
-                          type="button"
-                          onClick={() => setActivePrintReceipt(item)}
-                          className="px-2.5 py-1 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-950 font-bold text-[11px] inline-flex items-center gap-1 cursor-pointer"
-                        >
-                          <Printer className="w-3 h-3" />
-                          <span>View</span>
-                        </button>
+                        <div className="flex items-center justify-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => setActivePrintReceipt(item)}
+                            className="px-2.5 py-1 rounded-lg bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold text-[10px] shadow-2xs inline-flex items-center gap-1 cursor-pointer transition-all"
+                            title="Solo / Individual Print Official Trust Voucher"
+                          >
+                            <Printer className="w-3 h-3 stroke-[2.5]" />
+                            <span>Solo Print</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setActivePrintReceipt(item)}
+                            className="px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-[10px] inline-flex items-center gap-1 cursor-pointer transition-colors"
+                            title="Preview & Edit Receipt"
+                          >
+                            <Eye className="w-3 h-3" />
+                            <span>Preview</span>
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -868,7 +880,7 @@ export const FaizReceiptManagementSubpage: React.FC<Props> = ({
                   </h3>
                   <p className="text-[11px] text-slate-600 font-mono">
                     {activePrintReceipt
-                      ? `Receipt #${activePrintReceipt.receiptNo} • ${activePrintReceipt.hofName}`
+                      ? `Receipt #${activePrintReceipt?.receiptNo || 'N/A'} • ${activePrintReceipt?.hofName || 'N/A'}`
                       : 'Interactive FMB Voucher Customizer & Print Layout'}
                   </p>
                 </div>
@@ -888,13 +900,25 @@ export const FaizReceiptManagementSubpage: React.FC<Props> = ({
             <div className="p-4 sm:p-6 max-h-[85vh] overflow-y-auto">
               <FaizOfficialPrintReceipt
                 initialData={activePrintReceipt ? {
-                  receiptNo: activePrintReceipt.receiptNo.replace(/[^0-9]/g, '') || activePrintReceipt.receiptNo,
-                  dateStr: activePrintReceipt.date,
-                  memberName: activePrintReceipt.hofName.toUpperCase(),
-                  itsNo: activePrintReceipt.itsNumber,
-                  address: (hofs.find(h => h.itsNumber === activePrintReceipt.itsNumber)?.address || 'BURHANI PARK, OPP. NAVANA PUMPING STATION, VATWA, AHMEDABAD').toUpperCase(),
-                  amount: activePrintReceipt.amount,
-                  paymentModeStr: activePrintReceipt.paymentMode === 'Cash' ? 'By Cash.' : (activePrintReceipt.paymentMode === 'Cheque' ? 'By Cheque.' : `By ${activePrintReceipt.paymentMode}.`),
+                  receiptNo: activePrintReceipt.receiptNo
+                    ? (String(activePrintReceipt.receiptNo).replace(/[^0-9]/g, '') || String(activePrintReceipt.receiptNo))
+                    : 'N/A',
+                  dateStr: activePrintReceipt.date || '',
+                  memberName: (activePrintReceipt.hofName || '').toUpperCase(),
+                  itsNo: activePrintReceipt.itsNumber || '',
+                  address: (() => {
+                    const matchedHof = hofs.find(h => h.itsNumber === activePrintReceipt?.itsNumber);
+                    const rawAddr = matchedHof?.fullAddress || (matchedHof as any)?.address || (matchedHof as any)?.flatNumber
+                      ? `${(matchedHof as any)?.flatNumber || 'Flat'}, Burhani Park, Vatwa, Ahmedabad`
+                      : 'BURHANI PARK, OPP. NAVANA PUMPING STATION, VATWA, AHMEDABAD';
+                    return String(rawAddr || '').toUpperCase();
+                  })(),
+                  amount: typeof activePrintReceipt.amount === 'number'
+                    ? activePrintReceipt.amount
+                    : (parseFloat(String(activePrintReceipt.amount)) || 0),
+                  paymentModeStr: activePrintReceipt.paymentMode === 'Cash'
+                    ? 'By Cash.'
+                    : (activePrintReceipt.paymentMode === 'Cheque' ? 'By Cheque.' : `By ${activePrintReceipt.paymentMode || 'Cash'}.`),
                   purposeTitle: activePrintReceipt.category === 'Takhmeen' ? 'Takhmeen' : (activePrintReceipt.category === 'Hoob' ? 'Hoob' : 'Donation'),
                 } : undefined}
                 currentUser={currentUser}

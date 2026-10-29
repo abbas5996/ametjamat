@@ -143,7 +143,7 @@ export const FaizAdditionalMastersSubpage: React.FC<Props> = ({
       transferType: tType,
       referenceNo: tRef || `TXN-${Date.now().toString().slice(-6)}`,
       remarks: tRemarks,
-      authorizedBy: currentUser.fullName || currentUser.username,
+      authorizedBy: currentUser?.fullName || currentUser?.displayName || currentUser?.username || 'Admin',
       status: 'Completed',
     };
     const next = [newItem, ...transfers];

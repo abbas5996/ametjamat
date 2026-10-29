@@ -50,6 +50,7 @@ export interface ActivityLogEntry {
 export interface UserProfile {
   username: string;
   displayName: string;
+  fullName?: string;
   role: string;
   avatarUrl?: string;
   itsNumber: string;
@@ -121,6 +122,8 @@ export interface HeadOfFamily {
   mobileNumber: string;
   whatsappNumber: string;
   fullAddress: string;
+  address?: string;
+  flatNumber?: string;
   occupation: string;
   mohallahId: string; // e.g., 'MOH-SEC-A' or empty string if unmapped
   mohallahName: string; // e.g., 'Saifee Mohallah' or 'Unassigned'
@@ -224,6 +227,9 @@ export interface SabeelLedgerRecord {
   createdAt: string;
   updatedAt: string;
   // Extended fields used by production subpages
+  address?: string;
+  fullAddress?: string;
+  flatNumber?: string;
   memberName?: string;
   sabeelNumber?: string;
   mohallah?: string;

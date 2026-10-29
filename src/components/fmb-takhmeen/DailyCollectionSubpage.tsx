@@ -19,6 +19,8 @@ import {
   FileText,
   DollarSign,
   Download,
+  Eye,
+  FileSpreadsheet,
 } from 'lucide-react';
 import {
   TakhmeenRecord,
@@ -30,6 +32,8 @@ import {
 } from '../../types';
 import { recordCollectionPayment, saveStoredCollections, logFmbAudit } from '../../utils/fmbTakhmeen';
 import { checkUserPermission } from '../../utils/rbac';
+import { TrustOfficialReceiptModal } from '../common/TrustOfficialReceiptModal';
+import { numberToWordsIndian } from '../../utils/fmbPart2Data';
 
 interface DailyCollectionSubpageProps {
   takhmeens: TakhmeenRecord[];
@@ -68,6 +72,9 @@ export const DailyCollectionSubpage: React.FC<DailyCollectionSubpageProps> = ({
 
   // Receipt Modal State
   const [activeReceipt, setActiveReceipt] = useState<FmbCollectionEntry | null>(null);
+
+  // Bulk Print Selection State for Recent Collections
+  const [selectedCollectionIds, setSelectedCollectionIds] = useState<string[]>([]);
 
   // Defaulters List Search & Filter
   const [defaulterSearch, setDefaulterSearch] = useState('');
@@ -644,184 +651,205 @@ export const DailyCollectionSubpage: React.FC<DailyCollectionSubpageProps> = ({
 
       {/* ── TAB 3: RECENT COLLECTIONS LOG ── */}
       {activeTab === 'recent' && (
-        <div className="bg-white border border-amber-200/90 rounded-xl shadow-xs overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-[#0F172A] text-white uppercase text-[10px] font-bold tracking-wider">
-                <tr>
-                  <th className="py-3 px-3.5">Receipt No</th>
-                  <th className="py-3 px-3.5">Date</th>
-                  <th className="py-3 px-3.5">Member ITS & Name</th>
-                  <th className="py-3 px-3.5 text-right">Amount (₹)</th>
-                  <th className="py-3 px-3.5">Payment Mode</th>
-                  <th className="py-3 px-3.5">Transaction Ref</th>
-                  <th className="py-3 px-3.5">Cashier</th>
-                  <th className="py-3 px-3.5 text-right">Receipt</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {collections.length === 0 ? (
-                  <tr>
-                    <td colSpan={8} className="text-center py-12 text-slate-500">
-                      <Receipt className="w-8 h-8 mx-auto text-slate-300 mb-2" />
-                      <p className="font-semibold text-slate-700">No Collections Recorded Yet</p>
-                    </td>
-                  </tr>
-                ) : (
-                  collections.map((c) => (
-                    <tr key={c.id} className="hover:bg-amber-50/50 transition-colors">
-                      <td className="py-3 px-3.5 font-mono font-bold text-amber-800 whitespace-nowrap">
-                        {c.receiptNo}
-                      </td>
-                      <td className="py-3 px-3.5 whitespace-nowrap text-slate-600">{c.date}</td>
-                      <td className="py-3 px-3.5">
-                        <div className="font-bold text-slate-900">{c.hofName}</div>
-                        <div className="text-[11px] font-mono text-slate-500">ITS: {c.itsNumber}</div>
-                      </td>
-                      <td className="py-3 px-3.5 text-right font-mono font-bold text-emerald-800 whitespace-nowrap">
-                        ₹{c.amount.toLocaleString('en-IN')}
-                      </td>
-                      <td className="py-3 px-3.5 whitespace-nowrap">
-                        <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-slate-100 text-slate-800">
-                          {c.paymentMode}
-                        </span>
-                      </td>
-                      <td className="py-3 px-3.5 font-mono text-slate-500 text-[11px] whitespace-nowrap">
-                        {c.referenceNo || 'N/A'}
-                      </td>
-                      <td className="py-3 px-3.5 text-slate-600 font-mono text-[11px] whitespace-nowrap">
-                        @{c.collectedBy}
-                      </td>
-                      <td className="py-3 px-3.5 text-right whitespace-nowrap">
-                        <button
-                          type="button"
-                          onClick={() => setActiveReceipt(c)}
-                          className="px-2.5 py-1 bg-amber-100 hover:bg-amber-200 text-amber-900 rounded font-bold text-[11px] flex items-center gap-1 cursor-pointer ml-auto"
-                        >
-                          <Printer className="w-3 h-3" />
-                          <span>View Receipt</span>
-                        </button>
-                      </td>
-                    </tr>
-                  ))
+        <div className="space-y-4">
+          {/* Recent Collections Action Ribbon */}
+          <div className="bg-white border border-amber-200/90 rounded-xl p-3.5 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+            <div>
+              <h3 className="font-bold text-slate-900 flex items-center gap-2">
+                <Receipt className="w-4 h-4 text-amber-600" />
+                <span>Recent Counter Collections Log</span>
+              </h3>
+              <p className="text-[11px] text-slate-500">
+                Total {collections.length} transactions recorded in active session
+                {selectedCollectionIds.length > 0 && (
+                  <span className="ml-2 font-bold text-amber-800">
+                    ({selectedCollectionIds.length} Selected)
+                  </span>
                 )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+              </p>
+            </div>
 
-      {/* ── PRINTABLE DIGITAL RECEIPT MODAL ── */}
-      {activeReceipt && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl shadow-2xl border border-amber-400 w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-150">
-            {/* Header */}
-            <div className="bg-[#0F172A] text-white p-4 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Receipt className="w-5 h-5 text-amber-400" />
-                <h3 className="font-bold text-sm">Official Jamaat E-Receipt</h3>
-              </div>
+            <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => setActiveReceipt(null)}
-                className="text-slate-400 hover:text-white p-1 rounded-md"
+                onClick={() => {
+                  const toPrint = selectedCollectionIds.length > 0
+                    ? collections.filter((c) => selectedCollectionIds.includes(c.id))
+                    : collections;
+                  if (toPrint.length === 0) {
+                    showToast('No collections to print.');
+                    return;
+                  }
+                  showToast(`Bulk print initiated for ${toPrint.length} collection receipts...`);
+                  window.print();
+                }}
+                className="px-3.5 py-1.5 bg-amber-100 hover:bg-amber-200 text-amber-950 font-bold text-xs rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer border border-amber-300 shadow-2xs"
+                title="Bulk Print Selected or All Collections"
               >
-                <X className="w-5 h-5" />
+                <Printer className="w-3.5 h-3.5" />
+                <span>Bulk Print {selectedCollectionIds.length > 0 ? `(${selectedCollectionIds.length})` : `(${collections.length})`}</span>
               </button>
             </div>
+          </div>
 
-            {/* Receipt Body for Print Preview */}
-            <div className="p-6 space-y-4 text-xs font-sans">
-              <div className="text-center pb-3 border-b border-dashed border-slate-300">
-                <p className="font-black text-sm uppercase text-slate-900 tracking-wider">
-                  Faiz ul Mawaid il Burhaniyah
-                </p>
-                <p className="text-[11px] text-slate-500">Anjuman-e-Saifee • Burhani Park Jamat</p>
-                <p className="text-[10px] text-amber-800 font-bold mt-1">
-                  OFFICIAL PAYMENT RECEIPT
-                </p>
-              </div>
+          <div className="bg-white border border-amber-200/90 rounded-xl shadow-xs overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-[#0F172A] text-white uppercase text-[10px] font-bold tracking-wider">
+                  <tr>
+                    <th className="py-3 px-3 text-center w-10">
+                      <input
+                        type="checkbox"
+                        checked={collections.length > 0 && selectedCollectionIds.length === collections.length}
+                        onChange={() => {
+                          if (selectedCollectionIds.length === collections.length && collections.length > 0) {
+                            setSelectedCollectionIds([]);
+                          } else {
+                            setSelectedCollectionIds(collections.map((c) => c.id));
+                          }
+                        }}
+                        className="w-3.5 h-3.5 rounded border-slate-300 text-amber-500 focus:ring-amber-400 cursor-pointer"
+                        title="Select all for bulk print"
+                      />
+                    </th>
+                    <th className="py-3 px-3.5">Receipt No</th>
+                    <th className="py-3 px-3.5">Date</th>
+                    <th className="py-3 px-3.5">Member ITS & Name</th>
+                    <th className="py-3 px-3.5 text-right">Amount (₹)</th>
+                    <th className="py-3 px-3.5">Payment Mode</th>
+                    <th className="py-3 px-3.5">Transaction Ref</th>
+                    <th className="py-3 px-3.5">Cashier</th>
+                    <th className="py-3 px-3.5 text-center">Receipt Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {collections.length === 0 ? (
+                    <tr>
+                      <td colSpan={9} className="text-center py-12 text-slate-500">
+                        <Receipt className="w-8 h-8 mx-auto text-slate-300 mb-2" />
+                        <p className="font-semibold text-slate-700">No Collections Recorded Yet</p>
+                      </td>
+                    </tr>
+                  ) : (
+                    collections.map((c) => (
+                      <tr key={c.id} className="hover:bg-amber-50/50 transition-colors">
+                        <td className="py-3 px-3 text-center">
+                          <input
+                            type="checkbox"
+                            checked={selectedCollectionIds.includes(c.id)}
+                            onChange={() => {
+                              setSelectedCollectionIds((prev) =>
+                                prev.includes(c.id) ? prev.filter((x) => x !== c.id) : [...prev, c.id]
+                              );
+                            }}
+                            className="w-3.5 h-3.5 rounded border-slate-300 text-amber-500 focus:ring-amber-400 cursor-pointer"
+                            title="Select for bulk print"
+                          />
+                        </td>
+                        <td className="py-3 px-3.5 font-mono font-bold text-amber-800 whitespace-nowrap">
+                          {c.receiptNo}
+                        </td>
+                        <td className="py-3 px-3.5 whitespace-nowrap text-slate-600">{c.date}</td>
+                        <td className="py-3 px-3.5">
+                          <div className="font-bold text-slate-900">{c.hofName}</div>
+                          <div className="text-[11px] font-mono text-slate-500">ITS: {c.itsNumber}</div>
+                        </td>
+                        <td className="py-3 px-3.5 text-right font-mono font-bold text-emerald-800 whitespace-nowrap">
+                          ₹{c.amount.toLocaleString('en-IN')}
+                        </td>
+                        <td className="py-3 px-3.5 whitespace-nowrap">
+                          <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-slate-100 text-slate-800">
+                            {c.paymentMode}
+                          </span>
+                        </td>
+                        <td className="py-3 px-3.5 font-mono text-slate-500 text-[11px] whitespace-nowrap">
+                          {c.referenceNo || 'N/A'}
+                        </td>
+                        <td className="py-3 px-3.5 text-slate-600 font-mono text-[11px] whitespace-nowrap">
+                          @{c.collectedBy}
+                        </td>
+                        <td className="py-3 px-3.5 text-center whitespace-nowrap">
+                          <div className="flex items-center justify-center gap-1.5">
+                            {/* Dedicated Solo / Individual Print Button */}
+                            <button
+                              type="button"
+                              onClick={() => setActiveReceipt(c)}
+                              className="px-2.5 py-1 bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold text-[10px] rounded-lg shadow-2xs transition-all flex items-center gap-1 cursor-pointer"
+                              title="Solo / Individual Print Official Trust Voucher"
+                            >
+                              <Printer className="w-3 h-3 stroke-[2.5]" />
+                              <span>Solo Print</span>
+                            </button>
 
-              <div className="flex justify-between text-[11px]">
-                <div>
-                  <p className="text-slate-400">Receipt No:</p>
-                  <p className="font-mono font-bold text-slate-900">{activeReceipt.receiptNo}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-slate-400">Date & Time:</p>
-                  <p className="font-mono text-slate-900">{activeReceipt.createdAt}</p>
-                </div>
-              </div>
-
-              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1.5">
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Member Name:</span>
-                  <span className="font-bold text-slate-900">{activeReceipt.hofName}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">ITS Number:</span>
-                  <span className="font-mono font-bold text-slate-900">{activeReceipt.itsNumber}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Financial Year:</span>
-                  <span className="font-semibold text-slate-800">{activeReceipt.financialYear}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Payment Mode:</span>
-                  <span className="font-bold text-slate-900">{activeReceipt.paymentMode}</span>
-                </div>
-                {activeReceipt.referenceNo && (
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Ref / Txn No:</span>
-                    <span className="font-mono text-slate-700">{activeReceipt.referenceNo}</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Amount Box */}
-              <div className="p-3 bg-amber-50 rounded-xl border border-amber-300 flex justify-between items-center">
-                <span className="font-bold text-amber-950 uppercase text-[11px]">
-                  Amount Received:
-                </span>
-                <span className="font-mono font-black text-xl text-amber-950">
-                  ₹{activeReceipt.amount.toLocaleString('en-IN')}
-                </span>
-              </div>
-
-              {activeReceipt.notes && (
-                <div className="text-[11px] text-slate-500 italic">
-                  Note: {activeReceipt.notes}
-                </div>
-              )}
-
-              <div className="pt-2 text-center text-[10px] text-slate-400 border-t border-slate-100">
-                Processed by Cashier @{activeReceipt.collectedBy} • System Verified E-Receipt
-              </div>
-
-              {/* Action Buttons */}
-              <div className="grid grid-cols-2 gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    window.print();
-                  }}
-                  className="py-2 px-3 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-lg flex items-center justify-center gap-1.5 cursor-pointer"
-                >
-                  <Printer className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Print Receipt</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveReceipt(null)}
-                  className="py-2 px-3 border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold rounded-lg cursor-pointer text-center"
-                >
-                  Done
-                </button>
-              </div>
+                            {/* View / Edit Button */}
+                            <button
+                              type="button"
+                              onClick={() => setActiveReceipt(c)}
+                              className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-[10px] rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
+                              title="View & Edit Receipt"
+                            >
+                              <Eye className="w-3 h-3" />
+                              <span>View</span>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
       )}
+
+      {/* ── STANDARDIZED OFFICIAL TRUST RECEIPT STUDIO MODAL ── */}
+      <TrustOfficialReceiptModal
+        isOpen={!!activeReceipt}
+        onClose={() => setActiveReceipt(null)}
+        currentUser={currentUser}
+        title="Official Dawoodi Bohra Jamaat Trust FMB Receipt"
+        receiptData={
+          activeReceipt
+            ? {
+                trustTitle: 'DAWOODI BOHRA JAMAAT TRUST, BURHANIPARK VATWA',
+                trustRegnNo: 'Regn No - B/81',
+                managedBy: 'Managed By Anjuman e Mufaddal',
+                accountTitle: 'A/c : Faiz ul Mawaid il Burhaniyah',
+                receiptNo:
+                  (activeReceipt.receiptNo || '').replace(/[^0-9]/g, '') ||
+                  activeReceipt.receiptNo,
+                dateStr:
+                  activeReceipt.date ||
+                  (activeReceipt.createdAt
+                    ? activeReceipt.createdAt.slice(0, 10)
+                    : new Date().toISOString().slice(0, 10)),
+                memberName: (activeReceipt.hofName || '').toUpperCase(),
+                honorificLeft: '(حفظه الله تعالى)',
+                itsNo: activeReceipt.itsNumber,
+                address: (
+                  hofs.find((h) => h.itsNumber === activeReceipt.itsNumber)?.fullAddress ||
+                  hofs.find((h) => h.itsNumber === activeReceipt.itsNumber)?.address ||
+                  'BURHANI PARK, OPP. NAVANA PUMPING STATION, VATWA, AHMEDABAD'
+                ).toUpperCase(),
+                greetingArabic: 'بعد السلام الجميل',
+                amount: activeReceipt.amount,
+                amountInWords: numberToWordsIndian(activeReceipt.amount),
+                descriptorRight: 'اپ طرف سي',
+                descriptorAnke: 'انکه',
+                paymentModeStr:
+                  activeReceipt.paymentMode === 'Cash'
+                    ? 'By Cash.'
+                    : activeReceipt.paymentMode === 'Cheque'
+                    ? 'By Cheque.'
+                    : `By ${activeReceipt.paymentMode}.`,
+                purposeTitle: 'Faiz Takhmeen Collection',
+                purposePhrase: 'طریقے وصول تھیا چھے',
+                receiverSignature: '(وصول کرنار نی صحیح) عبد سید ناطع',
+              }
+            : undefined
+        }
+      />
     </div>
   );
 };

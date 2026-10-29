@@ -54,7 +54,7 @@ export const SetDefaultTakhmeenYearSubpage: React.FC<Props> = ({
       remarks,
       status: isDefault ? 'Active' : 'Archived',
       lastUpdated: new Date().toISOString().split('T')[0],
-      updatedBy: currentUser.fullName || currentUser.username,
+      updatedBy: currentUser?.fullName || currentUser?.displayName || currentUser?.username || 'Admin',
     };
     setConfig(updated);
     saveStoredDefaultYear(updated);

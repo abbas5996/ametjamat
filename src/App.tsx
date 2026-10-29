@@ -8,10 +8,6 @@ import { FinancialYear, UserProfile, UserPermissionsMap } from './types';
 import { filterNavigationForUser } from './utils/rbac';
 import { CheckCircle2, X } from 'lucide-react';
 
-// Wipe any stale session keys so every app start is a clean slate
-localStorage.removeItem('jamat_auth_session');
-localStorage.removeItem('jamat_user');
-
 /** Blank user profile used before (and after) authentication. */
 const BLANK_USER: UserProfile = {
   username: '',
@@ -22,9 +18,29 @@ const BLANK_USER: UserProfile = {
 };
 
 export const App: React.FC = () => {
-  // Always start unauthenticated — LoginPage is the mandatory entry point
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [currentUser, setCurrentUser] = useState<UserProfile>(BLANK_USER);
+  // Restore authenticated session from localStorage if present
+  const [currentUser, setCurrentUser] = useState<UserProfile>(() => {
+    try {
+      const stored = localStorage.getItem('jamat_user');
+      const isAuth = localStorage.getItem('jamat_auth_session') === 'true';
+      if (isAuth && stored) {
+        return JSON.parse(stored);
+      }
+    } catch (e) {
+      console.error('Failed to parse stored jamat_user:', e);
+    }
+    return BLANK_USER;
+  });
+
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    try {
+      const isAuth = localStorage.getItem('jamat_auth_session') === 'true';
+      const stored = localStorage.getItem('jamat_user');
+      return !!(isAuth && stored);
+    } catch {
+      return false;
+    }
+  });
 
   // Shell Layout State
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -259,7 +275,7 @@ export const App: React.FC = () => {
           financialYear={selectedYear}
           currentUser={currentUser}
           onNavigateHome={handleNavigateHome}
-          onQuickAction={(actionName) => showToast(`Action executed: ${actionName}`)}
+          onQuickAction={(actionName) => showToast(actionName)}
         />
       </div>
 

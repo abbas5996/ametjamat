@@ -1,10 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import {
   Receipt, Search, Filter, Printer, Download, Plus, RefreshCw, X, Eye, Ban,
-  FileSpreadsheet, Calendar, User, CreditCard, ShieldCheck, QrCode
+  FileSpreadsheet, Calendar, User, CreditCard, ShieldCheck, QrCode, CheckSquare, Square
 } from 'lucide-react';
 import { SabeelTransactionEntry, SabeelLedgerRecord, UserProfile, SabeelPaymentMode } from '../../types';
 import { SabeelReceiptConfig, SabeelTypeRecord } from '../../utils/sabeelProductionSuite';
+import { TrustOfficialReceiptModal } from '../common/TrustOfficialReceiptModal';
+import { numberToWordsIndian } from '../../utils/fmbPart2Data';
 
 interface SabeelViewPrintReceiptsSubpageProps {
   transactions: SabeelTransactionEntry[];
@@ -41,6 +43,9 @@ export const SabeelViewPrintReceiptsSubpage: React.FC<SabeelViewPrintReceiptsSub
 
   // Preview Modal
   const [receiptToPreview, setReceiptToPreview] = useState<SabeelTransactionEntry | null>(null);
+
+  // Bulk Print Selection State
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   // Mohallas
   const distinctMohallas = useMemo(() => {
@@ -97,15 +102,36 @@ export const SabeelViewPrintReceiptsSubpage: React.FC<SabeelViewPrintReceiptsSub
     setUserFilter('ALL');
     setPayTypeFilter('ALL');
     showToast('Receipt filters reset');
+    setSelectedIds([]);
+  };
+
+  const handleToggleSelectAll = () => {
+    if (selectedIds.length === filteredTransactions.length && filteredTransactions.length > 0) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(filteredTransactions.map(t => t.id || t.receiptNo));
+    }
+  };
+
+  const handleToggleSelect = (id: string) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   };
 
   const handleBulkPrint = () => {
-    if (filteredTransactions.length === 0) {
+    const toPrint = selectedIds.length > 0
+      ? filteredTransactions.filter(t => selectedIds.includes(t.id || t.receiptNo))
+      : filteredTransactions;
+
+    if (toPrint.length === 0) {
       showToast('No receipts to print.');
       return;
     }
-    showToast(`Printing ${filteredTransactions.length} receipts...`);
+    showToast(`Bulk print studio initiated for ${toPrint.length} Sabeel receipts...`);
     window.print();
+  };
+
+  const handleSoloPrint = (tx: SabeelTransactionEntry) => {
+    setReceiptToPreview(tx);
   };
 
   const handleExportCSV = () => {
@@ -158,10 +184,11 @@ export const SabeelViewPrintReceiptsSubpage: React.FC<SabeelViewPrintReceiptsSub
             </button>
             <button
               onClick={handleBulkPrint}
-              className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer"
+              className="px-3.5 py-2 bg-amber-100 hover:bg-amber-200 text-amber-950 font-bold text-xs rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer border border-amber-300 shadow-2xs"
+              title="Bulk Print Selected or Filtered Receipts"
             >
               <Printer className="w-3.5 h-3.5" />
-              <span>Bulk Print</span>
+              <span>Bulk Print {selectedIds.length > 0 ? `(${selectedIds.length})` : `(${filteredTransactions.length})`}</span>
             </button>
             <button
               onClick={handleExportCSV}
@@ -285,6 +312,15 @@ export const SabeelViewPrintReceiptsSubpage: React.FC<SabeelViewPrintReceiptsSub
           <table className="w-full text-left border-collapse text-xs">
             <thead>
               <tr className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
+                <th className="py-2.5 px-3 text-center w-10">
+                  <input
+                    type="checkbox"
+                    checked={filteredTransactions.length > 0 && selectedIds.length === filteredTransactions.length}
+                    onChange={handleToggleSelectAll}
+                    className="w-3.5 h-3.5 rounded border-slate-300 text-amber-600 focus:ring-amber-500 cursor-pointer"
+                    title="Select all for bulk print"
+                  />
+                </th>
                 <th className="py-2.5 px-3">Sr.No</th>
                 <th className="py-2.5 px-3">Receipt No</th>
                 <th className="py-2.5 px-3">Date</th>
@@ -295,12 +331,21 @@ export const SabeelViewPrintReceiptsSubpage: React.FC<SabeelViewPrintReceiptsSub
                 <th className="py-2.5 px-3">Mode</th>
                 <th className="py-2.5 px-4 text-right">Amount Paid</th>
                 <th className="py-2.5 px-3">Received By</th>
-                <th className="py-2.5 px-3 text-center">Action</th>
+                <th className="py-2.5 px-3 text-center">Receipt Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-slate-700">
               {filteredTransactions.map((tx, idx) => (
                 <tr key={tx.id || tx.receiptNo} className="hover:bg-amber-50/40 transition-colors">
+                  <td className="py-2.5 px-3 text-center">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.includes(tx.id || tx.receiptNo)}
+                      onChange={() => handleToggleSelect(tx.id || tx.receiptNo)}
+                      className="w-3.5 h-3.5 rounded border-slate-300 text-amber-600 focus:ring-amber-500 cursor-pointer"
+                      title="Select for bulk print"
+                    />
+                  </td>
                   <td className="py-2.5 px-3 font-semibold text-slate-500">{idx + 1}</td>
                   <td className="py-2.5 px-3 font-black text-slate-900">{tx.receiptNo}</td>
                   <td className="py-2.5 px-3 text-slate-600 font-medium">{tx.paymentDate}</td>
@@ -318,20 +363,35 @@ export const SabeelViewPrintReceiptsSubpage: React.FC<SabeelViewPrintReceiptsSub
                   </td>
                   <td className="py-2.5 px-3 text-slate-500 text-[11px]">{tx.receivedBy || 'Admin'}</td>
                   <td className="py-2.5 px-3 text-center">
-                    <button
-                      onClick={() => setReceiptToPreview(tx)}
-                      className="px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 rounded font-bold text-[10px] flex items-center gap-1 mx-auto transition-colors cursor-pointer"
-                      title="View & Print Official Receipt"
-                    >
-                      <Eye className="w-3 h-3" />
-                      <span>Print Slip</span>
-                    </button>
+                    <div className="flex items-center justify-center gap-1.5">
+                      {/* Dedicated Solo / Individual Print Button */}
+                      <button
+                        type="button"
+                        onClick={() => handleSoloPrint(tx)}
+                        className="px-2.5 py-1 bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold text-[10px] rounded-lg shadow-2xs transition-all flex items-center gap-1 cursor-pointer"
+                        title="Solo / Individual Print Official Trust Voucher"
+                      >
+                        <Printer className="w-3 h-3 stroke-[2.5]" />
+                        <span>Solo Print</span>
+                      </button>
+
+                      {/* View / Edit Preview Button */}
+                      <button
+                        type="button"
+                        onClick={() => setReceiptToPreview(tx)}
+                        className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-[10px] rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
+                        title="View & Edit Receipt Preview"
+                      >
+                        <Eye className="w-3 h-3" />
+                        <span>Preview</span>
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
               {filteredTransactions.length === 0 && (
                 <tr>
-                  <td colSpan={11} className="py-12 text-center text-slate-400">
+                  <td colSpan={12} className="py-12 text-center text-slate-400">
                     No receipts found for the selected criteria.
                   </td>
                 </tr>
@@ -341,123 +401,53 @@ export const SabeelViewPrintReceiptsSubpage: React.FC<SabeelViewPrintReceiptsSub
         </div>
       </div>
 
-      {/* Official Receipt Preview Modal */}
-      {receiptToPreview && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-          <div className="bg-white border border-slate-300 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden">
-            {/* Header toolbar */}
-            <div className="px-6 py-3 bg-slate-100 border-b border-slate-200 flex items-center justify-between no-print">
-              <span className="text-xs font-bold text-slate-700">Official Receipt Preview</span>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => window.print()}
-                  className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
-                >
-                  <Printer className="w-3.5 h-3.5" />
-                  <span>Print Receipt</span>
-                </button>
-                <button
-                  onClick={() => setReceiptToPreview(null)}
-                  className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-200 transition-colors cursor-pointer"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-
-            {/* Receipt Body */}
-            <div className="p-6 text-slate-900 space-y-4 text-xs bg-white">
-              <div className="text-center space-y-1 border-b border-amber-800/30 pb-3">
-                <div className="text-sm font-serif font-bold text-amber-900">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</div>
-                <div className="font-bold text-amber-800 text-[11px] uppercase tracking-wide">
-                  {receiptConfig.customHeader || 'Anjuman-e-Saifee (Burhani Park Jamaat)'}
-                </div>
-                <div className="text-sm font-black text-slate-900 tracking-tight uppercase">
-                  Sabeel Mubarak Collection Receipt
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between bg-slate-50 p-2.5 rounded-lg border border-slate-200">
-                <div>
-                  <span className="text-slate-400 block text-[10px] uppercase font-bold">Receipt No:</span>
-                  <span className="font-black text-slate-900">{receiptToPreview.receiptNo}</span>
-                </div>
-                <div className="text-right">
-                  <span className="text-slate-400 block text-[10px] uppercase font-bold">Date:</span>
-                  <span className="font-bold text-slate-700">{receiptToPreview.paymentDate}</span>
-                </div>
-              </div>
-
-              <div className="space-y-2 border-b border-slate-100 pb-3">
-                {receiptConfig.showHofName && (
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Received with thanks from:</span>
-                    <span className="font-black text-slate-900">{receiptToPreview.memberName}</span>
-                  </div>
-                )}
-                {receiptConfig.showItsNumber && (
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">ITS Number:</span>
-                    <span className="font-bold text-amber-800">{receiptToPreview.itsNumber}</span>
-                  </div>
-                )}
-                {receiptConfig.showSabeelNumber && (
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Sabeel Number:</span>
-                    <span className="font-bold text-blue-700">{receiptToPreview.sabeelNo || '—'}</span>
-                  </div>
-                )}
-                {receiptConfig.showMohalla && (
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Mohallah:</span>
-                    <span className="font-medium text-slate-700">{receiptToPreview.mohallah || '—'}</span>
-                  </div>
-                )}
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Payment Mode:</span>
-                  <span className="font-bold text-slate-800">{receiptToPreview.paymentMode}</span>
-                </div>
-              </div>
-
-              {/* Amount Paid Callout */}
-              <div className="bg-emerald-50 border border-emerald-200 p-3 rounded-xl flex items-center justify-between">
-                <div>
-                  <span className="text-[10px] font-bold text-emerald-800 uppercase block">Amount Received:</span>
-                  <span className="text-lg font-black text-emerald-700">{fmtINR(receiptToPreview.amountPaid ?? receiptToPreview.amount ?? 0)}</span>
-                </div>
-                {receiptConfig.showBalanceDue && (
-                  <div className="text-right">
-                    <span className="text-[10px] text-slate-500 font-bold uppercase block">Balance Due:</span>
-                    <span className="text-xs font-bold text-slate-700">
-                      {fmtINR(receiptToPreview.balanceDueAfterPayment || 0)}
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              {/* Footer info & verification */}
-              <div className="pt-2 flex items-center justify-between">
-                <div>
-                  <div className="text-[10px] text-slate-400">Received By: {receiptToPreview.receivedBy || 'Admin'}</div>
-                  <div className="text-[9px] text-slate-400">System Generated • Authentic Receipt</div>
-                </div>
-                {receiptConfig.showQrCode && (
-                  <div className="p-1 bg-slate-50 border border-slate-200 rounded text-center">
-                    <QrCode className="w-10 h-10 text-slate-800" />
-                    <span className="text-[8px] text-slate-400 block font-mono">VERIFIED</span>
-                  </div>
-                )}
-              </div>
-
-              {receiptConfig.showDuaFooter && (
-                <div className="text-[10px] text-center text-amber-800/80 italic pt-2 border-t border-slate-100">
-                  {receiptConfig.customFooter}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Standardized Official Trust Receipt Studio Modal */}
+      <TrustOfficialReceiptModal
+        isOpen={!!receiptToPreview}
+        onClose={() => setReceiptToPreview(null)}
+        currentUser={currentUser}
+        title="Official Dawoodi Bohra Jamaat Trust Sabeel Receipt"
+        receiptData={
+          receiptToPreview
+            ? {
+                trustTitle: 'DAWOODI BOHRA JAMAAT TRUST, BURHANIPARK VATWA',
+                trustRegnNo: 'Regn No - B/81',
+                managedBy: 'Managed By Anjuman e Mufaddal',
+                accountTitle: 'A/c : Sabeel ul Barkaat / Sabeel Mubarak',
+                receiptNo:
+                  (receiptToPreview.receiptNo || '').replace(/[^0-9]/g, '') ||
+                  receiptToPreview.receiptNo,
+                dateStr: receiptToPreview.paymentDate || receiptToPreview.date,
+                memberName: (receiptToPreview.memberName || '').toUpperCase(),
+                honorificLeft: '(حفظه الله تعالى)',
+                itsNo: receiptToPreview.itsNumber,
+                address: (
+                  ledger.find((l) => l.itsNumber === receiptToPreview.itsNumber)?.address ||
+                  ledger.find((l) => l.itsNumber === receiptToPreview.itsNumber)?.fullAddress ||
+                  `${receiptToPreview.mohallah ? receiptToPreview.mohallah + ', ' : ''}BURHANI PARK, VATWA, AHMEDABAD`
+                ).toUpperCase(),
+                greetingArabic: 'بعد السلام الجميل',
+                amount: receiptToPreview.amountPaid ?? receiptToPreview.amount ?? 0,
+                amountInWords: numberToWordsIndian(
+                  receiptToPreview.amountPaid ?? receiptToPreview.amount ?? 0
+                ),
+                descriptorRight: 'اپ طرف سي',
+                descriptorAnke: 'انکه',
+                paymentModeStr:
+                  receiptToPreview.paymentMode === 'Cash'
+                    ? 'By Cash.'
+                    : receiptToPreview.paymentMode === 'Cheque'
+                    ? 'By Cheque.'
+                    : `By ${receiptToPreview.paymentMode}.`,
+                purposeTitle: receiptToPreview.sabeelNo
+                  ? `Sabeel Mubarak (${receiptToPreview.sabeelNo})`
+                  : 'Sabeel Mubarak',
+                purposePhrase: 'طریقے وصول تھیا چھے',
+                receiverSignature: '(وصول کرنار نی صحیح) عبد سید ناطع',
+              }
+            : undefined
+        }
+      />
     </div>
   );
 };

@@ -33,6 +33,8 @@ import {
   logSabeelAudit,
 } from '../../utils/sabeelManagement';
 import { checkUserPermission } from '../../utils/rbac';
+import { TrustOfficialReceiptModal } from '../common/TrustOfficialReceiptModal';
+import { numberToWordsIndian } from '../../utils/fmbPart2Data';
 
 interface SabeelTakhmeenCollectionSubpageProps {
   ledger: SabeelLedgerRecord[];
@@ -701,121 +703,52 @@ export const SabeelTakhmeenCollectionSubpage: React.FC<SabeelTakhmeenCollectionS
         </div>
       )}
 
-      {/* ── PRINTABLE DIGITAL RECEIPT MODAL ── */}
-      {activeReceipt && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl shadow-2xl border border-amber-400 w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-150">
-            {/* Header */}
-            <div className="bg-[#0F172A] text-white p-4 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <CreditCard className="w-5 h-5 text-amber-400" />
-                <h3 className="font-bold text-sm">Official Sabeel E-Receipt</h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setActiveReceipt(null)}
-                className="text-slate-400 hover:text-white p-1 rounded-md"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Receipt Body */}
-            <div className="p-6 space-y-4 text-xs font-sans">
-              <div className="text-center pb-3 border-b border-dashed border-slate-300">
-                <p className="font-black text-sm uppercase text-slate-900 tracking-wider">
-                  Sabeel-e-Hussaini Department
-                </p>
-                <p className="text-[11px] text-slate-500">Anjuman-e-Saifee • Burhani Park Jamat</p>
-                <p className="text-[10px] text-amber-800 font-bold mt-1">
-                  OFFICIAL PAYMENT RECEIPT
-                </p>
-              </div>
-
-              <div className="flex justify-between text-[11px]">
-                <div>
-                  <p className="text-slate-400">Receipt No:</p>
-                  <p className="font-mono font-bold text-slate-900">{activeReceipt.receiptNo}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-slate-400">Date & Time:</p>
-                  <p className="font-mono text-slate-900">{activeReceipt.createdAt}</p>
-                </div>
-              </div>
-
-              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1.5">
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Member Name:</span>
-                  <span className="font-bold text-slate-900">{activeReceipt.hofName}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">ITS Number:</span>
-                  <span className="font-mono font-bold text-slate-900">{activeReceipt.itsNumber}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Sabeel No:</span>
-                  <span className="font-mono font-bold text-amber-900">{activeReceipt.sabeelNo}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Financial Year:</span>
-                  <span className="font-semibold text-slate-800">{activeReceipt.financialYear}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Payment Mode:</span>
-                  <span className="font-bold text-slate-900">{activeReceipt.paymentMode}</span>
-                </div>
-                {activeReceipt.referenceNo && (
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Ref / Txn No:</span>
-                    <span className="font-mono text-slate-700">{activeReceipt.referenceNo}</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Amount Box */}
-              <div className="p-3 bg-amber-50 rounded-xl border border-amber-300 flex justify-between items-center">
-                <span className="font-bold text-amber-950 uppercase text-[11px]">
-                  Amount Received:
-                </span>
-                <span className="font-mono font-black text-xl text-amber-950">
-                  ₹{activeReceipt.amount.toLocaleString('en-IN')}
-                </span>
-              </div>
-
-              {activeReceipt.notes && (
-                <div className="text-[11px] text-slate-500 italic">
-                  Note: {activeReceipt.notes}
-                </div>
-              )}
-
-              <div className="pt-2 text-center text-[10px] text-slate-400 border-t border-slate-100">
-                Processed by Cashier @{activeReceipt.collectedBy} • System Verified E-Receipt
-              </div>
-
-              {/* Action Buttons */}
-              <div className="grid grid-cols-2 gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    window.print();
-                  }}
-                  className="py-2 px-3 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-lg flex items-center justify-center gap-1.5 cursor-pointer"
-                >
-                  <Printer className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Print Receipt</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveReceipt(null)}
-                  className="py-2 px-3 border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold rounded-lg cursor-pointer text-center"
-                >
-                  Done
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* ── STANDARDIZED OFFICIAL TRUST RECEIPT STUDIO MODAL ── */}
+      <TrustOfficialReceiptModal
+        isOpen={!!activeReceipt}
+        onClose={() => setActiveReceipt(null)}
+        currentUser={currentUser}
+        title="Official Dawoodi Bohra Jamaat Trust Sabeel Receipt"
+        receiptData={
+          activeReceipt
+            ? {
+                trustTitle: 'DAWOODI BOHRA JAMAAT TRUST, BURHANIPARK VATWA',
+                trustRegnNo: 'Regn No - B/81',
+                managedBy: 'Managed By Anjuman e Mufaddal',
+                accountTitle: 'A/c : Sabeel ul Barkaat / Sabeel Mubarak',
+                receiptNo:
+                  (activeReceipt.receiptNo || '').replace(/[^0-9]/g, '') ||
+                  activeReceipt.receiptNo,
+                dateStr:
+                  activeReceipt.createdAt ? activeReceipt.createdAt.slice(0, 10) : new Date().toISOString().slice(0, 10),
+                memberName: (activeReceipt.hofName || '').toUpperCase(),
+                honorificLeft: '(حفظه الله تعالى)',
+                itsNo: activeReceipt.itsNumber,
+                address: (
+                  ledger.find((l) => l.itsNumber === activeReceipt.itsNumber)?.address ||
+                  ledger.find((l) => l.itsNumber === activeReceipt.itsNumber)?.fullAddress ||
+                  'BURHANI PARK, OPP. NAVANA PUMPING STATION, VATWA, AHMEDABAD'
+                ).toUpperCase(),
+                greetingArabic: 'بعد السلام الجميل',
+                amount: activeReceipt.amount,
+                amountInWords: numberToWordsIndian(activeReceipt.amount),
+                descriptorRight: 'اپ طرف سي',
+                descriptorAnke: 'انکه',
+                paymentModeStr:
+                  activeReceipt.paymentMode === 'Cash'
+                    ? 'By Cash.'
+                    : activeReceipt.paymentMode === 'Cheque'
+                    ? 'By Cheque.'
+                    : `By ${activeReceipt.paymentMode}.`,
+                purposeTitle: activeReceipt.sabeelNo
+                  ? `Sabeel Mubarak (${activeReceipt.sabeelNo})`
+                  : 'Sabeel Mubarak',
+                purposePhrase: 'طریقے وصول تھیا چھے',
+                receiverSignature: '(وصول کرنار نی صحیح) عبد سید ناطع',
+              }
+            : undefined
+        }
+      />
     </div>
   );
 };
