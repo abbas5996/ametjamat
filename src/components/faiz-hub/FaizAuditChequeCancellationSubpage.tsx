@@ -14,6 +14,8 @@ import {
 } from '../../utils/fmbPart2Data';
 import { getStoredHofs } from '../../utils/memberMaster';
 import { UserProfile } from '../../types';
+import { toIsoDate } from '../../utils/dateFilters';
+import { QuickDatePresetsBar } from '../common/DateFilterBar';
 
 const fmtINR = (n: number) => `₹${n.toLocaleString('en-IN')}`;
 
@@ -95,8 +97,11 @@ export const FaizAuditChequeCancellationSubpage: React.FC<Props> = ({
     return cancelledVouchers.filter(v => {
       if (v.voucherType !== targetType) return false;
       if (userFilter !== 'ALL' && v.cancelledBy !== userFilter) return false;
-      if (startDate && v.cancelledDate < startDate) return false;
-      if (endDate && v.cancelledDate > endDate) return false;
+      if (startDate || endDate) {
+        const itemIso = toIsoDate(v.cancelledDate) || v.cancelledDate;
+        if (startDate && itemIso < startDate) return false;
+        if (endDate && itemIso > endDate) return false;
+      }
       if (cancelSearch) {
         const q = cancelSearch.toLowerCase();
         const m1 = v.originalVoucherNo.toLowerCase().includes(q);
@@ -388,23 +393,33 @@ export const FaizAuditChequeCancellationSubpage: React.FC<Props> = ({
               />
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="font-bold text-slate-700">Date Range:</span>
               <input
-                type="text"
+                type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                placeholder="From..."
-                className="px-2.5 py-1.5 rounded-xl border border-slate-300 font-mono w-28"
+                className="px-2.5 py-1.5 rounded-xl border border-slate-300 font-mono text-xs w-36"
               />
               <input
-                type="text"
+                type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                placeholder="To..."
-                className="px-2.5 py-1.5 rounded-xl border border-slate-300 font-mono w-28"
+                className="px-2.5 py-1.5 rounded-xl border border-slate-300 font-mono text-xs w-36"
               />
             </div>
+          </div>
+
+          <div className="pt-2 border-t border-slate-200">
+            <QuickDatePresetsBar
+              fromDate={startDate}
+              toDate={endDate}
+              onSelectRange={(from, to) => {
+                setStartDate(from);
+                setEndDate(to);
+              }}
+              availableDates={cancelledVouchers.map((v) => v.cancelledDate)}
+            />
           </div>
 
           <div className="bg-white border border-amber-300/60 rounded-2xl p-5 shadow-xs space-y-4">

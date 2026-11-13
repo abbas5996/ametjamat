@@ -95,52 +95,103 @@ export const MumineenModule: React.FC<MumineenModuleProps> = ({
 
   const reloadHofs = () => setHofs(getStoredHofs());
 
-  // 13 Tabs Config
-  const tabs: { key: MumineenSubTab; label: string; icon: React.ReactNode; count?: number; badge?: string }[] = [
-    { key: 'mumineen-list',               label: '1. Mumineen List',            icon: <Users className="w-3.5 h-3.5" />,            count: hofs.length },
-    { key: 'mumineen-registration',       label: '2. Registration Wizard',     icon: <UserPlus className="w-3.5 h-3.5" />,         badge: 'New' },
-    { key: 'non-local-mumineen',          label: '3. Non-Local Mumineen',       icon: <Globe2 className="w-3.5 h-3.5" />,           count: nonLocals.filter(n => n.status === 'Active').length },
-    { key: 'deleted-mumineen',            label: '4. Delete List (Trash)',      icon: <Trash2 className="w-3.5 h-3.5" />,           count: deletedRecords.length },
-    { key: 'mumineen-outstanding',        label: '5. Outstanding Ledger',       icon: <FileSpreadsheet className="w-3.5 h-3.5" />,  badge: 'Dues' },
-    { key: 'inactive-mumineen',           label: '6. Inactive Mumineen',        icon: <UserX className="w-3.5 h-3.5" />,            count: inactiveRecords.length },
-    { key: 'add-smart-card',              label: '7. Add Smart Card',           icon: <CreditCard className="w-3.5 h-3.5" />,       count: smartCards.length },
-    { key: 'print-smart-card',            label: '8. Print Smart Card',         icon: <Printer className="w-3.5 h-3.5" />,          badge: 'ID Studio' },
-    { key: 'safai-chitthi-entry',         label: '9. Safai Chitthi Entry',      icon: <FileCheck className="w-3.5 h-3.5" /> },
-    { key: 'outstanding-safai-chitthi',   label: '10. Blocked Chitthi List',    icon: <AlertTriangle className="w-3.5 h-3.5" />,    count: safaiChitthies.filter(s => s.status === 'Blocked').length },
-    { key: 'jamaat-category-list',        label: '11. Jamaat Categories',       icon: <Layers className="w-3.5 h-3.5" />,           count: categories.length },
-    { key: 'outstanding-comments',        label: '12. Outstanding Comments',    icon: <MessageSquare className="w-3.5 h-3.5" />,    count: comments.filter(c => !c.isResolved).length },
-    { key: 'sync-its52',                  label: '13. Sync ITS52 Data',         icon: <RefreshCw className="w-3.5 h-3.5" />,        badge: 'API/CSV' },
+  // 13 Subpages organized into 3 logical enterprise workspaces
+  const tabGroups: {
+    title: string;
+    items: { key: MumineenSubTab; label: string; icon: React.ReactNode; count?: number; badge?: string }[];
+  }[] = [
+    {
+      title: '1. Census & Directory',
+      items: [
+        { key: 'mumineen-list',               label: 'Mumineen List',            icon: <Users className="w-3.5 h-3.5" />,            count: hofs.length },
+        { key: 'mumineen-registration',       label: 'Registration Wizard',     icon: <UserPlus className="w-3.5 h-3.5" />,         badge: 'New' },
+        { key: 'non-local-mumineen',          label: 'Non-Local Mumineen',       icon: <Globe2 className="w-3.5 h-3.5" />,           count: nonLocals.filter(n => n.status === 'Active').length },
+        { key: 'inactive-mumineen',           label: 'Inactive Mumineen',        icon: <UserX className="w-3.5 h-3.5" />,            count: inactiveRecords.length },
+        { key: 'deleted-mumineen',            label: 'Trash Records',            icon: <Trash2 className="w-3.5 h-3.5" />,           count: deletedRecords.length },
+      ],
+    },
+    {
+      title: '2. Identity & Clearance',
+      items: [
+        { key: 'add-smart-card',              label: 'Add Smart Card',           icon: <CreditCard className="w-3.5 h-3.5" />,       count: smartCards.length },
+        { key: 'print-smart-card',            label: 'Print Smart Card',         icon: <Printer className="w-3.5 h-3.5" />,          badge: 'Studio' },
+        { key: 'safai-chitthi-entry',         label: 'Safai Chitthi Entry',      icon: <FileCheck className="w-3.5 h-3.5" /> },
+        { key: 'outstanding-safai-chitthi',   label: 'Blocked Chitthi List',    icon: <AlertTriangle className="w-3.5 h-3.5" />,    count: safaiChitthies.filter(s => s.status === 'Blocked').length },
+      ],
+    },
+    {
+      title: '3. Ledger, Dues & Sync',
+      items: [
+        { key: 'mumineen-outstanding',        label: 'Outstanding Ledger',       icon: <FileSpreadsheet className="w-3.5 h-3.5" />,  badge: 'Dues' },
+        { key: 'jamaat-category-list',        label: 'Jamaat Categories',       icon: <Layers className="w-3.5 h-3.5" />,           count: categories.length },
+        { key: 'outstanding-comments',        label: 'Outstanding Comments',    icon: <MessageSquare className="w-3.5 h-3.5" />,    count: comments.filter(c => !c.isResolved).length },
+        { key: 'sync-its52',                  label: 'Sync ITS52 Data',         icon: <RefreshCw className="w-3.5 h-3.5" />,        badge: 'API/CSV' },
+      ],
+    },
   ];
+
+  const activeGroupIdx = Math.max(
+    0,
+    tabGroups.findIndex((grp) => grp.items.some((item) => item.key === activeTab))
+  );
+  const currentTabGroup = tabGroups[activeGroupIdx] || tabGroups[0];
 
   return (
     <div className="space-y-6">
-      {/* Tab Navigation Ribbon */}
-      <div className="bg-white border border-amber-300/40 rounded-xl p-1.5 shadow-xs flex items-center gap-1 overflow-x-auto select-none">
-        {tabs.map(({ key, label, icon, count, badge }) => (
-          <button
-            key={key}
-            type="button"
-            onClick={() => setActiveTab(key)}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
-              activeTab === key
-                ? 'bg-[#EAB308] text-slate-950 shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-amber-50'
-            }`}
-          >
-            {icon}
-            <span>{label}</span>
-            {count !== undefined && (
-              <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-white/70 text-slate-900 font-mono">
-                {count}
-              </span>
-            )}
-            {badge && (
-              <span className="ml-1 px-1.5 py-0.2 rounded-md text-[9px] bg-slate-900 text-amber-300 uppercase tracking-wider font-extrabold">
-                {badge}
-              </span>
-            )}
-          </button>
-        ))}
+      {/* Streamlined 2-Tier Categorized Navigation Strip */}
+      <div className="bg-white border border-amber-300/40 rounded-2xl p-3 shadow-xs space-y-2.5">
+        <div className="flex flex-wrap items-center gap-1.5 pb-2 border-b border-slate-100">
+          <span className="text-[10px] font-black uppercase text-amber-900/70 tracking-wider mr-1">
+            Workspace:
+          </span>
+          {tabGroups.map((grp, gIdx) => (
+            <button
+              key={grp.title}
+              type="button"
+              onClick={() => setActiveTab(grp.items[0].key)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                gIdx === activeGroupIdx
+                  ? 'bg-slate-900 text-amber-300 shadow-xs'
+                  : 'bg-slate-100 text-slate-600 hover:bg-amber-50 hover:text-slate-900'
+              }`}
+            >
+              {grp.title}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5">
+          {currentTabGroup.items.map(({ key, label, icon, count, badge }) => {
+            const isActive = activeTab === key;
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setActiveTab(key)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0 ${
+                  isActive
+                    ? 'bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-amber-50/80'
+                }`}
+              >
+                {icon}
+                <span>{label}</span>
+                {count !== undefined && (
+                  <span className={`ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
+                    isActive ? 'bg-slate-950/20 text-slate-950 font-bold' : 'bg-slate-100 text-slate-700'
+                  }`}>
+                    {count}
+                  </span>
+                )}
+                {badge && (
+                  <span className="ml-1 px-1.5 py-0.2 rounded-md text-[9px] bg-slate-900 text-amber-300 uppercase tracking-wider font-extrabold">
+                    {badge}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Render Active Subpage View */}
@@ -475,11 +526,10 @@ const MumineenListSubpage: React.FC<{
                       </span>
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                        hof.status === 'Active'
-                          ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                          : 'bg-slate-100 text-slate-600 border border-slate-300'
-                      }`}>
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${hof.status === 'Active'
+                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                        : 'bg-slate-100 text-slate-600 border border-slate-300'
+                        }`}>
                         {hof.status}
                       </span>
                     </td>
@@ -828,13 +878,12 @@ const MumineenRegistrationSubpage: React.FC<{
           <div
             key={s.num}
             onClick={() => setStep(s.num as any)}
-            className={`py-2 px-1 rounded-lg border cursor-pointer transition-all ${
-              step === s.num
-                ? 'bg-amber-400 border-amber-500 text-slate-950 shadow-xs'
-                : step > s.num
+            className={`py-2 px-1 rounded-lg border cursor-pointer transition-all ${step === s.num
+              ? 'bg-amber-400 border-amber-500 text-slate-950 shadow-xs'
+              : step > s.num
                 ? 'bg-emerald-50 border-emerald-300 text-emerald-800'
                 : 'bg-slate-50 border-slate-200 text-slate-400'
-            }`}
+              }`}
           >
             <span>{s.num}. {s.title}</span>
           </div>
@@ -1360,11 +1409,10 @@ const NonLocalMumineenSubpage: React.FC<{
                     </td>
                     <td className="px-4 py-3 text-slate-700 max-w-xs truncate">{n.purpose}</td>
                     <td className="px-4 py-3 text-center">
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                        n.status === 'Active'
-                          ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                          : 'bg-slate-100 text-slate-600'
-                      }`}>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${n.status === 'Active'
+                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                        : 'bg-slate-100 text-slate-600'
+                        }`}>
                         {n.status}
                       </span>
                     </td>
@@ -1690,11 +1738,10 @@ const OutstandingLedgerSubpage: React.FC<{
               key={tab}
               type="button"
               onClick={() => setFilterType(tab)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                filterType === tab
-                  ? 'bg-amber-400 text-slate-950 shadow-xs'
-                  : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
-              }`}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${filterType === tab
+                ? 'bg-amber-400 text-slate-950 shadow-xs'
+                : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                }`}
             >
               {tab}
             </button>
@@ -1729,13 +1776,12 @@ const OutstandingLedgerSubpage: React.FC<{
                     {fmtINR(item.totalDue)}
                   </td>
                   <td className="px-4 py-3 text-center font-sans">
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                      item.totalDue === 0
-                        ? 'bg-emerald-100 text-emerald-800'
-                        : item.totalDue > 10000
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${item.totalDue === 0
+                      ? 'bg-emerald-100 text-emerald-800'
+                      : item.totalDue > 10000
                         ? 'bg-rose-100 text-rose-800'
                         : 'bg-amber-100 text-amber-800'
-                    }`}>
+                      }`}>
                       {item.status}
                     </span>
                   </td>
@@ -1967,11 +2013,10 @@ const AddSmartCardSubpage: React.FC<{
                       if (checked) setAccessGates(accessGates.filter(g => g !== gate));
                       else setAccessGates([...accessGates, gate]);
                     }}
-                    className={`px-2 py-1 rounded text-[10px] font-bold border cursor-pointer ${
-                      checked
-                        ? 'bg-amber-400 border-amber-500 text-slate-950'
-                        : 'bg-slate-50 border-slate-200 text-slate-500'
-                    }`}
+                    className={`px-2 py-1 rounded text-[10px] font-bold border cursor-pointer ${checked
+                      ? 'bg-amber-400 border-amber-500 text-slate-950'
+                      : 'bg-slate-50 border-slate-200 text-slate-500'
+                      }`}
                   >
                     {gate}
                   </button>
@@ -2023,11 +2068,10 @@ const AddSmartCardSubpage: React.FC<{
                   <td className="px-4 py-3 font-sans text-slate-700">{c.cardType}</td>
                   <td className="px-4 py-3 text-slate-500">{c.expiryDate}</td>
                   <td className="px-4 py-3 text-center font-sans">
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                      c.status === 'Active'
-                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                        : 'bg-rose-100 text-rose-800 border border-rose-300'
-                    }`}>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${c.status === 'Active'
+                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                      : 'bg-rose-100 text-rose-800 border border-rose-300'
+                      }`}>
                       {c.status}
                     </span>
                   </td>
@@ -2035,11 +2079,10 @@ const AddSmartCardSubpage: React.FC<{
                     <button
                       type="button"
                       onClick={() => handleToggleStatus(c.id, c.status)}
-                      className={`px-2.5 py-1 text-[11px] font-bold rounded cursor-pointer ${
-                        c.status === 'Active'
-                          ? 'bg-rose-50 text-rose-700 hover:bg-rose-100'
-                          : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
-                      }`}
+                      className={`px-2.5 py-1 text-[11px] font-bold rounded cursor-pointer ${c.status === 'Active'
+                        ? 'bg-rose-50 text-rose-700 hover:bg-rose-100'
+                        : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                        }`}
                     >
                       {c.status === 'Active' ? 'Block Card' : 'Unblock'}
                     </button>
@@ -2304,11 +2347,10 @@ const SafaiChitthiEntrySubpage: React.FC<{
         </div>
 
         {/* Dues Status Alert Banner */}
-        <div className={`sm:col-span-2 p-4 rounded-xl border flex items-start justify-between gap-3 ${
-          hasDues
-            ? 'bg-rose-50 border-rose-300 text-rose-900'
-            : 'bg-emerald-50 border-emerald-300 text-emerald-900'
-        }`}>
+        <div className={`sm:col-span-2 p-4 rounded-xl border flex items-start justify-between gap-3 ${hasDues
+          ? 'bg-rose-50 border-rose-300 text-rose-900'
+          : 'bg-emerald-50 border-emerald-300 text-emerald-900'
+          }`}>
           <div className="flex items-start gap-2.5">
             {hasDues ? <Ban className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" /> : <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />}
             <div>
@@ -2491,13 +2533,12 @@ const OutstandingSafaiChitthiSubpage: React.FC<{
                       {fmtINR(s.totalDuesAtRequest)}
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                        s.status === 'Issued'
-                          ? 'bg-emerald-100 text-emerald-800'
-                          : s.status === 'Blocked'
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${s.status === 'Issued'
+                        ? 'bg-emerald-100 text-emerald-800'
+                        : s.status === 'Blocked'
                           ? 'bg-rose-100 text-rose-800'
                           : 'bg-slate-100 text-slate-600'
-                      }`}>
+                        }`}>
                         {s.status}
                       </span>
                     </td>
@@ -2848,23 +2889,21 @@ const OutstandingCommentsSubpage: React.FC<{
         {comments.map((c) => (
           <div
             key={c.id}
-            className={`p-4 rounded-xl border transition-all ${
-              c.isResolved
-                ? 'bg-slate-50 border-slate-200 opacity-60'
-                : c.priority === 'Critical'
+            className={`p-4 rounded-xl border transition-all ${c.isResolved
+              ? 'bg-slate-50 border-slate-200 opacity-60'
+              : c.priority === 'Critical'
                 ? 'bg-rose-50 border-rose-300'
                 : 'bg-white border-amber-200/80 shadow-xs'
-            }`}
+              }`}
           >
             <div className="flex items-start justify-between gap-3">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                    c.priority === 'Critical' ? 'bg-rose-600 text-white' :
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${c.priority === 'Critical' ? 'bg-rose-600 text-white' :
                     c.priority === 'High' ? 'bg-rose-100 text-rose-800' :
-                    c.priority === 'Medium' ? 'bg-amber-100 text-amber-900' :
-                    'bg-slate-100 text-slate-700'
-                  }`}>
+                      c.priority === 'Medium' ? 'bg-amber-100 text-amber-900' :
+                        'bg-slate-100 text-slate-700'
+                    }`}>
                     {c.priority}
                   </span>
                   <span className="font-bold text-xs text-slate-900">{c.memberName}</span>
