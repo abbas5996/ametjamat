@@ -220,11 +220,10 @@ export const UmurFrameworkModule: React.FC<UmurFrameworkModuleProps> = ({
           <button
             type="button"
             onClick={() => setSelectedUmurId('umur-dashboard')}
-            className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
-              selectedUmurId === 'umur-dashboard'
-                ? 'bg-[#0F172A] text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-            }`}
+            className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${selectedUmurId === 'umur-dashboard'
+              ? 'bg-[#0F172A] text-white shadow-xs'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+              }`}
           >
             All 12 Umur Overview
           </button>
@@ -236,11 +235,10 @@ export const UmurFrameworkModule: React.FC<UmurFrameworkModuleProps> = ({
                 key={dept.id}
                 type="button"
                 onClick={() => setSelectedUmurId(dept.id)}
-                className={`px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all cursor-pointer flex items-center space-x-1.5 ${
-                  isSelected
-                    ? 'bg-[#EAB308] text-[#0F172A] font-black shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-                }`}
+                className={`px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all cursor-pointer flex items-center space-x-1.5 ${isSelected
+                  ? 'bg-[#EAB308] text-[#0F172A] font-black shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                  }`}
               >
                 <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: dept.colorTag }} />
                 <span>{dept.orderNumber}. {dept.name}</span>
@@ -251,11 +249,10 @@ export const UmurFrameworkModule: React.FC<UmurFrameworkModuleProps> = ({
           <button
             type="button"
             onClick={() => setSelectedUmurId('cancelled-vouchers')}
-            className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer flex items-center space-x-1.5 ${
-              selectedUmurId === 'cancelled-vouchers'
-                ? 'bg-rose-700 text-white shadow-xs'
-                : 'text-rose-700 hover:bg-rose-50'
-            }`}
+            className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer flex items-center space-x-1.5 ${selectedUmurId === 'cancelled-vouchers'
+              ? 'bg-rose-700 text-white shadow-xs'
+              : 'text-rose-700 hover:bg-rose-50'
+              }`}
           >
             <XCircle className="w-3.5 h-3.5" />
             <span>Cancelled Vouchers</span>
@@ -463,11 +460,10 @@ export const UmurFrameworkModule: React.FC<UmurFrameworkModuleProps> = ({
                       </div>
                       <div className="flex items-center space-x-2 shrink-0">
                         <span
-                          className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                            prj.priority === 'High'
-                              ? 'bg-rose-100 text-rose-800'
-                              : 'bg-blue-100 text-blue-800'
-                          }`}
+                          className={`px-2 py-0.5 rounded text-[10px] font-bold ${prj.priority === 'High'
+                            ? 'bg-rose-100 text-rose-800'
+                            : 'bg-blue-100 text-blue-800'
+                            }`}
                         >
                           {prj.priority} Priority
                         </span>

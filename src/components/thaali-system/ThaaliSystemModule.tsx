@@ -64,15 +64,15 @@ export const ThaaliSystemModule: React.FC<Props> = ({
   const nonActiveThaalis = useMemo(() => thaalis.filter(t => t.status !== 'Active'), [thaalis]);
 
   const tabs: { key: ThaaliSubTab; label: string; icon: React.ReactNode; count?: number; badge?: string }[] = [
-    { key: 'distributor-master',      label: '1. Distributor Master',   icon: <Truck className="w-3.5 h-3.5" />,            count: distributors.length },
-    { key: 'distributor-type-master', label: '2. Distributor Types',    icon: <Layers className="w-3.5 h-3.5" />,           count: types.length },
-    { key: 'assign-distributor',      label: '3. Assign Distributor',   icon: <MapPin className="w-3.5 h-3.5" />,           count: assignments.length },
-    { key: 'active-thaali-list',      label: '4. Active Thaali List',   icon: <CheckCircle2 className="w-3.5 h-3.5" />,     count: activeThaalis.length },
-    { key: 'non-active-thaali-list',  label: '5. Non-Active Thaalis',   icon: <XCircle className="w-3.5 h-3.5" />,          count: nonActiveThaalis.length },
-    { key: 'thaali-feedback-list',    label: '6. Member Feedback',      icon: <MessageSquare className="w-3.5 h-3.5" />,    count: feedbacks.filter(f => f.status === 'New').length },
-    { key: 'dispatch-list',           label: '7. Kitchen Dispatch',     icon: <Send className="w-3.5 h-3.5" />,             badge: 'Live' },
-    { key: 'thaali-count',            label: '8. Thaali Counts',        icon: <Hash className="w-3.5 h-3.5" /> },
-    { key: 'label-printing',          label: '9. Label Printing',       icon: <Printer className="w-3.5 h-3.5" />,          badge: 'Studio' },
+    { key: 'distributor-master', label: '1. Distributor Master', icon: <Truck className="w-3.5 h-3.5" />, count: distributors.length },
+    { key: 'distributor-type-master', label: '2. Distributor Types', icon: <Layers className="w-3.5 h-3.5" />, count: types.length },
+    { key: 'assign-distributor', label: '3. Assign Distributor', icon: <MapPin className="w-3.5 h-3.5" />, count: assignments.length },
+    { key: 'active-thaali-list', label: '4. Active Thaali List', icon: <CheckCircle2 className="w-3.5 h-3.5" />, count: activeThaalis.length },
+    { key: 'non-active-thaali-list', label: '5. Non-Active Thaalis', icon: <XCircle className="w-3.5 h-3.5" />, count: nonActiveThaalis.length },
+    { key: 'thaali-feedback-list', label: '6. Member Feedback', icon: <MessageSquare className="w-3.5 h-3.5" />, count: feedbacks.filter(f => f.status === 'New').length },
+    { key: 'dispatch-list', label: '7. Kitchen Dispatch', icon: <Send className="w-3.5 h-3.5" />, badge: 'Live' },
+    { key: 'thaali-count', label: '8. Thaali Counts', icon: <Hash className="w-3.5 h-3.5" /> },
+    { key: 'label-printing', label: '9. Label Printing', icon: <Printer className="w-3.5 h-3.5" />, badge: 'Studio' },
   ];
 
   return (
@@ -84,11 +84,10 @@ export const ThaaliSystemModule: React.FC<Props> = ({
             key={key}
             type="button"
             onClick={() => setActiveTab(key)}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
-              activeTab === key
-                ? 'bg-[#EAB308] text-slate-950 shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-amber-50'
-            }`}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${activeTab === key
+              ? 'bg-[#EAB308] text-slate-950 shadow-xs'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-amber-50'
+              }`}
           >
             {icon}
             <span>{label}</span>
@@ -791,9 +790,8 @@ const DispatchListSubpage: React.FC<{
                   <td className="px-4 py-3 font-sans text-slate-700">{t.mohallahName}</td>
                   <td className="px-4 py-3 font-sans">{t.tier}</td>
                   <td className="px-4 py-3 text-center font-sans">
-                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                      packed ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-500'
-                    }`}>
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${packed ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-500'
+                      }`}>
                       {packed ? 'Ready' : 'Pending Pack'}
                     </span>
                   </td>

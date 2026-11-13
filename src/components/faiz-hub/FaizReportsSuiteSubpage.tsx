@@ -303,22 +303,21 @@ export const FaizReportsSuiteSubpage: React.FC<Props> = ({
       {/* ── Reports Navigation Ribbon ── */}
       <div className="bg-white border border-amber-300/60 rounded-xl p-1.5 shadow-xs flex items-center gap-1 overflow-x-auto select-none">
         {[
-          { key: 'datewise' as ReportTab,    label: '1. Datewise Faiz Report',   icon: Calendar },
-          { key: 'yearly' as ReportTab,      label: '2. Multi-Year Progression', icon: TrendingUp },
-          { key: 'progress' as ReportTab,    label: '3. Progress & Milestones',  icon: CheckCircle2 },
-          { key: 'outstanding' as ReportTab, label: '4. Outstanding Report',     icon: AlertTriangle },
-          { key: 'giftaid' as ReportTab,     label: '5. GiftAid Tax Claim',      icon: Gift },
-          { key: 'ledger' as ReportTab,      label: '6. Niyaz Cash/Bank Ledger', icon: BookOpen },
+          { key: 'datewise' as ReportTab, label: '1. Datewise Faiz Report', icon: Calendar },
+          { key: 'yearly' as ReportTab, label: '2. Multi-Year Progression', icon: TrendingUp },
+          { key: 'progress' as ReportTab, label: '3. Progress & Milestones', icon: CheckCircle2 },
+          { key: 'outstanding' as ReportTab, label: '4. Outstanding Report', icon: AlertTriangle },
+          { key: 'giftaid' as ReportTab, label: '5. GiftAid Tax Claim', icon: Gift },
+          { key: 'ledger' as ReportTab, label: '6. Niyaz Cash/Bank Ledger', icon: BookOpen },
         ].map(({ key, label, icon: Icon }) => (
           <button
             key={key}
             type="button"
             onClick={() => setActiveReportTab(key)}
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
-              activeReportTab === key
-                ? 'bg-amber-400 text-slate-950 shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-amber-50'
-            }`}
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${activeReportTab === key
+              ? 'bg-amber-400 text-slate-950 shadow-xs'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-amber-50'
+              }`}
           >
             <Icon className="w-4 h-4 text-amber-900" />
             <span>{label}</span>
@@ -540,9 +539,8 @@ export const FaizReportsSuiteSubpage: React.FC<Props> = ({
                       </td>
                       <td className="py-2.5 px-3 text-slate-600">{row.thaaliTier}</td>
                       <td className="py-2.5 px-3 text-center">
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                          row.status === 'Fully Settled' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
-                        }`}>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${row.status === 'Fully Settled' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                          }`}>
                           {row.status}
                         </span>
                       </td>
@@ -628,11 +626,10 @@ export const FaizReportsSuiteSubpage: React.FC<Props> = ({
                         </div>
                       </td>
                       <td className="py-2.5 px-3 text-center">
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                          row.status === 'Completed' ? 'bg-emerald-100 text-emerald-800' :
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${row.status === 'Completed' ? 'bg-emerald-100 text-emerald-800' :
                           row.status === 'On Track' ? 'bg-blue-100 text-blue-800' :
-                          'bg-rose-100 text-rose-800'
-                        }`}>
+                            'bg-rose-100 text-rose-800'
+                          }`}>
                           {row.status}
                         </span>
                       </td>
@@ -739,11 +736,10 @@ export const FaizReportsSuiteSubpage: React.FC<Props> = ({
                       <td className="py-2.5 px-3 text-right font-bold text-emerald-700">{fmtINR(row.paid)}</td>
                       <td className="py-2.5 px-3 text-right font-black text-rose-700">{fmtINR(row.balance)}</td>
                       <td className="py-2.5 px-3 text-center">
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                          row.aging === '90+ Days' ? 'bg-rose-100 text-rose-800' :
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${row.aging === '90+ Days' ? 'bg-rose-100 text-rose-800' :
                           row.aging === '60 Days' ? 'bg-amber-100 text-amber-800' :
-                          'bg-slate-100 text-slate-700'
-                        }`}>
+                            'bg-slate-100 text-slate-700'
+                          }`}>
                           {row.aging}
                         </span>
                       </td>
@@ -815,11 +811,10 @@ export const FaizReportsSuiteSubpage: React.FC<Props> = ({
                       <td className="py-2.5 px-3 text-right font-black text-emerald-700">{fmtINR(row.giftAidClaimable)}</td>
                       <td className="py-2.5 px-3 font-mono text-slate-500 text-[11px]">{row.claimBatchId}</td>
                       <td className="py-2.5 px-3 text-center">
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                          row.claimStatus === 'Submitted' ? 'bg-blue-100 text-blue-800' :
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${row.claimStatus === 'Submitted' ? 'bg-blue-100 text-blue-800' :
                           row.claimStatus === 'Eligible' ? 'bg-emerald-100 text-emerald-800' :
-                          'bg-slate-100 text-slate-700'
-                        }`}>
+                            'bg-slate-100 text-slate-700'
+                          }`}>
                           {row.claimStatus}
                         </span>
                       </td>
@@ -845,18 +840,16 @@ export const FaizReportsSuiteSubpage: React.FC<Props> = ({
                   <button
                     type="button"
                     onClick={() => setLedgerType('Cash')}
-                    className={`px-3 py-1 rounded-lg font-bold transition-colors cursor-pointer ${
-                      ledgerType === 'Cash' ? 'bg-amber-400 text-slate-950 shadow-2xs' : 'text-slate-600'
-                    }`}
+                    className={`px-3 py-1 rounded-lg font-bold transition-colors cursor-pointer ${ledgerType === 'Cash' ? 'bg-amber-400 text-slate-950 shadow-2xs' : 'text-slate-600'
+                      }`}
                   >
                     Cash Ledger
                   </button>
                   <button
                     type="button"
                     onClick={() => setLedgerType('Bank')}
-                    className={`px-3 py-1 rounded-lg font-bold transition-colors cursor-pointer ${
-                      ledgerType === 'Bank' ? 'bg-amber-400 text-slate-950 shadow-2xs' : 'text-slate-600'
-                    }`}
+                    className={`px-3 py-1 rounded-lg font-bold transition-colors cursor-pointer ${ledgerType === 'Bank' ? 'bg-amber-400 text-slate-950 shadow-2xs' : 'text-slate-600'
+                      }`}
                   >
                     Bank Ledger
                   </button>
