@@ -109,11 +109,10 @@ export const HallBookingModule: React.FC<HallBookingModuleProps> = ({
         <button
           type="button"
           onClick={() => setActiveTab('facilities')}
-          className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
-            activeTab === 'facilities'
-              ? 'bg-amber-400 text-slate-950 shadow-xs'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-amber-50'
-          }`}
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${activeTab === 'facilities'
+            ? 'bg-amber-400 text-slate-950 shadow-xs'
+            : 'text-slate-600 hover:text-slate-900 hover:bg-amber-50'
+            }`}
         >
           <Building2 className="w-4 h-4 text-amber-900" />
           <span>1. Facility & Hall Directory</span>
@@ -125,11 +124,10 @@ export const HallBookingModule: React.FC<HallBookingModuleProps> = ({
         <button
           type="button"
           onClick={() => setActiveTab('calendar')}
-          className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
-            activeTab === 'calendar'
-              ? 'bg-amber-400 text-slate-950 shadow-xs'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-amber-50'
-          }`}
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${activeTab === 'calendar'
+            ? 'bg-amber-400 text-slate-950 shadow-xs'
+            : 'text-slate-600 hover:text-slate-900 hover:bg-amber-50'
+            }`}
         >
           <Calendar className="w-4 h-4 text-amber-900" />
           <span>2. Booking Calendar & Slot Manager</span>
@@ -141,11 +139,10 @@ export const HallBookingModule: React.FC<HallBookingModuleProps> = ({
         <button
           type="button"
           onClick={() => setActiveTab('ledger')}
-          className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
-            activeTab === 'ledger'
-              ? 'bg-amber-400 text-slate-950 shadow-xs'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-amber-50'
-          }`}
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${activeTab === 'ledger'
+            ? 'bg-amber-400 text-slate-950 shadow-xs'
+            : 'text-slate-600 hover:text-slate-900 hover:bg-amber-50'
+            }`}
         >
           <Receipt className="w-4 h-4 text-amber-900" />
           <span>3. Payment & Receipt Ledger</span>

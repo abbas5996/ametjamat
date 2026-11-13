@@ -379,11 +379,10 @@ export const SpecialCommunityModules: React.FC<SpecialCommunityModulesProps> = (
                 key={sub.id}
                 type="button"
                 onClick={() => setSafarSubTab(sub.id as any)}
-                className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-                  safarSubTab === sub.id
-                    ? 'bg-white text-amber-900 font-bold shadow-xs border border-amber-200'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
+                className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${safarSubTab === sub.id
+                  ? 'bg-white text-amber-900 font-bold shadow-xs border border-amber-200'
+                  : 'text-slate-600 hover:text-slate-900'
+                  }`}
               >
                 {sub.label}
               </button>
@@ -647,11 +646,10 @@ export const SpecialCommunityModules: React.FC<SpecialCommunityModulesProps> = (
                         </td>
                         <td className="py-2.5 px-3 text-center">
                           <span
-                            className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                              tak.status === 'Paid'
-                                ? 'bg-emerald-100 text-emerald-800'
-                                : 'bg-amber-100 text-amber-900'
-                            }`}
+                            className={`px-2 py-0.5 rounded text-[10px] font-bold ${tak.status === 'Paid'
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : 'bg-amber-100 text-amber-900'
+                              }`}
                           >
                             {tak.status}
                           </span>
@@ -789,11 +787,10 @@ export const SpecialCommunityModules: React.FC<SpecialCommunityModulesProps> = (
                 key={sub.id}
                 type="button"
                 onClick={() => setHajSubTab(sub.id as any)}
-                className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-                  hajSubTab === sub.id
-                    ? 'bg-white text-emerald-900 font-bold shadow-xs border border-emerald-200'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
+                className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${hajSubTab === sub.id
+                  ? 'bg-white text-emerald-900 font-bold shadow-xs border border-emerald-200'
+                  : 'text-slate-600 hover:text-slate-900'
+                  }`}
               >
                 {sub.label}
               </button>

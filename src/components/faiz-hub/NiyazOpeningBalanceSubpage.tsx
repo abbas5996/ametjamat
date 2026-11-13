@@ -109,16 +109,16 @@ export const NiyazOpeningBalanceSubpage: React.FC<Props> = ({
       const updated = balances.map(b =>
         b.id === editingItem.id
           ? {
-              ...b,
-              openingBal,
-              openingDate,
-              type: accountType,
-              accountNo: accountNo.trim(),
-              bankName: bankName.trim(),
-              branchName: branchName.trim(),
-              ifscCode: ifscCode.trim(),
-              notes: notes.trim(),
-            }
+            ...b,
+            openingBal,
+            openingDate,
+            type: accountType,
+            accountNo: accountNo.trim(),
+            bankName: bankName.trim(),
+            branchName: branchName.trim(),
+            ifscCode: ifscCode.trim(),
+            notes: notes.trim(),
+          }
           : b
       );
       setBalances(updated);
@@ -255,12 +255,11 @@ export const NiyazOpeningBalanceSubpage: React.FC<Props> = ({
                       {item.openingDate}
                     </td>
                     <td className="py-3 px-3">
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                        item.type === 'Bank' ? 'bg-emerald-100 text-emerald-800' :
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${item.type === 'Bank' ? 'bg-emerald-100 text-emerald-800' :
                         item.type === 'Cash' ? 'bg-blue-100 text-blue-800' :
-                        item.type === 'Endowment' ? 'bg-purple-100 text-purple-800' :
-                        'bg-amber-100 text-amber-800'
-                      }`}>
+                          item.type === 'Endowment' ? 'bg-purple-100 text-purple-800' :
+                            'bg-amber-100 text-amber-800'
+                        }`}>
                         {item.type}
                       </span>
                     </td>
