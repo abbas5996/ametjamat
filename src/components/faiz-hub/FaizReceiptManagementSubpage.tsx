@@ -351,10 +351,9 @@ export const FaizReceiptManagementSubpage: React.FC<Props> = ({
           <div className="space-y-1">
             <label className="font-bold text-slate-700">From Date</label>
             <input
-              type="text"
+              type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              placeholder="e.g. 1447-02-01"
               className="w-full px-3 py-1.5 rounded-xl border border-slate-300 font-mono text-slate-900 focus:ring-2 focus:ring-amber-500 outline-none"
             />
           </div>
@@ -362,13 +361,25 @@ export const FaizReceiptManagementSubpage: React.FC<Props> = ({
           <div className="space-y-1">
             <label className="font-bold text-slate-700">To Date</label>
             <input
-              type="text"
+              type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              placeholder="e.g. 1447-02-29"
               className="w-full px-3 py-1.5 rounded-xl border border-slate-300 font-mono text-slate-900 focus:ring-2 focus:ring-amber-500 outline-none"
             />
           </div>
+        </div>
+
+        {/* Quick Date Presets Bar */}
+        <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
+          <QuickDatePresetsBar
+            fromDate={startDate}
+            toDate={endDate}
+            onSelectRange={(from, to) => {
+              setStartDate(from);
+              setEndDate(to);
+            }}
+            availableDates={receipts.map((r) => r.date)}
+          />
         </div>
 
         {/* Row 2: ITS, Sabeel, Thaali, Mohalla, User, Type */}
