@@ -159,7 +159,7 @@ export const NiyazOpeningBalanceSubpage: React.FC<Props> = ({
               Set Opening Balance (Niyaz Opening Balance List)
             </h2>
             <p className="text-xs text-slate-600 mt-0.5">
-              Establish initial fiscal balances for all FMB operational bank accounts, cash chest, and waqf reserves [cite: 26]
+              Establish initial fiscal balances for all FMB operational bank accounts, cash chest, and waqf reserves
             </p>
           </div>
         </div>

@@ -431,12 +431,28 @@ const ActiveThaaliListSubpage: React.FC<{
   showToast: (m: string) => void;
 }> = ({ thaalis, allThaalis, setThaalis, showToast }) => {
   const [search, setSearch] = useState('');
+  const [pauseTargetId, setPauseTargetId] = useState<string | null>(null);
+  const [pauseReason, setPauseReason] = useState('');
+  const [pauseError, setPauseError] = useState<string | null>(null);
 
-  const handlePause = (id: string) => {
-    const reason = prompt('Reason for pausing Thaali (e.g. Travel, Vacation, Medical):') || 'Personal Request';
-    const updated = allThaalis.map(t => t.id === id ? { ...t, status: 'Vacation', reason } : t);
+  const handleOpenPause = (id: string) => {
+    setPauseTargetId(id);
+    setPauseReason('Personal Request');
+    setPauseError(null);
+  };
+
+  const handleConfirmPause = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!pauseTargetId) return;
+    if (!pauseReason.trim()) {
+      setPauseError('Please provide a reason for pausing this Thaali.');
+      return;
+    }
+    const updated = allThaalis.map(t => t.id === pauseTargetId ? { ...t, status: 'Vacation', reason: pauseReason.trim() } : t);
     setThaalis(updated);
     saveStoredThaalis(updated);
+    setPauseTargetId(null);
+    setPauseReason('');
     showToast('Thaali paused and moved to Non-Active list.');
   };
 
@@ -486,7 +502,7 @@ const ActiveThaaliListSubpage: React.FC<{
                 <td className="px-4 py-3 text-right">
                   <button
                     type="button"
-                    onClick={() => handlePause(t.id)}
+                    onClick={() => handleOpenPause(t.id)}
                     className="px-2.5 py-1 text-[11px] font-bold bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 rounded cursor-pointer"
                   >
                     Pause (Safar)
@@ -497,6 +513,46 @@ const ActiveThaaliListSubpage: React.FC<{
           </tbody>
         </table>
       </div>
+
+      {pauseTargetId && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-5 shadow-2xl border border-amber-300 space-y-4">
+            <h4 className="text-sm font-bold text-slate-900">Pause Thaali (Safar / Vacation)</h4>
+            <form onSubmit={handleConfirmPause} className="space-y-3 text-xs">
+              {pauseError && (
+                <div className="p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 font-semibold">
+                  {pauseError}
+                </div>
+              )}
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Reason for Pausing Thaali</label>
+                <input
+                  type="text"
+                  value={pauseReason}
+                  onChange={(e) => setPauseReason(e.target.value)}
+                  placeholder="e.g. Travel, Vacation, Medical"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-amber-500 outline-none"
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setPauseTargetId(null)}
+                  className="px-3.5 py-1.5 border border-slate-300 rounded-lg text-slate-700 font-semibold cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-3.5 py-1.5 bg-amber-400 hover:bg-amber-500 text-slate-950 font-black rounded-lg cursor-pointer"
+                >
+                  Confirm Pause
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -562,11 +618,28 @@ const ThaaliFeedbackSubpage: React.FC<{
   setFeedbacks: React.Dispatch<React.SetStateAction<ThaaliFeedback[]>>;
   showToast: (m: string) => void;
 }> = ({ feedbacks, setFeedbacks, showToast }) => {
-  const handleResolve = (id: string) => {
-    const reply = prompt('Enter kitchen response / resolution note:') || 'Reviewed by Head Chef.';
-    const updated = feedbacks.map(f => f.id === id ? { ...f, status: 'Resolved' as const, adminResponse: reply } : f);
+  const [resolveTargetId, setResolveTargetId] = useState<string | null>(null);
+  const [resolveReply, setResolveReply] = useState('');
+  const [resolveError, setResolveError] = useState<string | null>(null);
+
+  const handleOpenResolve = (id: string) => {
+    setResolveTargetId(id);
+    setResolveReply('Reviewed by Head Chef.');
+    setResolveError(null);
+  };
+
+  const handleConfirmResolve = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resolveTargetId) return;
+    if (!resolveReply.trim()) {
+      setResolveError('Please enter a kitchen response or resolution note.');
+      return;
+    }
+    const updated = feedbacks.map(f => f.id === resolveTargetId ? { ...f, status: 'Resolved' as const, adminResponse: resolveReply.trim() } : f);
     setFeedbacks(updated);
     saveStoredThaaliFeedbacks(updated);
+    setResolveTargetId(null);
+    setResolveReply('');
     showToast('Feedback resolved.');
   };
 
@@ -607,7 +680,7 @@ const ThaaliFeedbackSubpage: React.FC<{
               <div className="pt-2 flex justify-end">
                 <button
                   type="button"
-                  onClick={() => handleResolve(f.id)}
+                  onClick={() => handleOpenResolve(f.id)}
                   className="px-3 py-1 bg-slate-900 text-amber-300 rounded text-xs font-bold cursor-pointer"
                 >
                   Respond & Resolve
@@ -617,6 +690,46 @@ const ThaaliFeedbackSubpage: React.FC<{
           </div>
         ))}
       </div>
+
+      {resolveTargetId && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-5 shadow-2xl border border-amber-300 space-y-4">
+            <h4 className="text-sm font-bold text-slate-900">Resolve Member Feedback</h4>
+            <form onSubmit={handleConfirmResolve} className="space-y-3 text-xs">
+              {resolveError && (
+                <div className="p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 font-semibold">
+                  {resolveError}
+                </div>
+              )}
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Kitchen Response / Resolution Note</label>
+                <textarea
+                  rows={3}
+                  value={resolveReply}
+                  onChange={(e) => setResolveReply(e.target.value)}
+                  placeholder="Enter kitchen response..."
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-amber-500 outline-none"
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setResolveTargetId(null)}
+                  className="px-3.5 py-1.5 border border-slate-300 rounded-lg text-slate-700 font-semibold cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-3.5 py-1.5 bg-slate-900 text-amber-300 font-black rounded-lg cursor-pointer"
+                >
+                  Save Resolution
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

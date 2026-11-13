@@ -8,10 +8,11 @@ import {
   HeadOfFamily,
 } from '../types';
 import { getStoredHofs } from './memberMaster';
-import { getStoredTakhmeens } from './fmbTakhmeen';
-import { getStoredSabeelLedger } from './sabeelManagement';
+import { getStoredTakhmeens, getStoredCollections } from './fmbTakhmeen';
+import { getStoredSabeelLedger, getStoredSabeelTransactions } from './sabeelManagement';
 import { getStoredBookings } from './hallBooking';
 import { getStoredActivityLogs, appendActivityLog } from './rbac';
+import { toIsoDate } from './dateFilters';
 
 export const GENERAL_RECEIPTS_STORAGE_KEY = 'jamat_general_receipts_v1';
 
@@ -50,7 +51,7 @@ export const INITIAL_GENERAL_RECEIPTS: GeneralReceiptRecord[] = [
     paymentMode: 'Bank Transfer',
     referenceNumber: 'NEFT-AXIS-9182',
     remarks: 'Annual Sabeel contribution supplementary top-up',
-    collectedBy: 'cashier1',
+    collectedBy: 'janabadmin',
     financialYear: '1447-1448 Hijri',
     createdAt: '2026-10-14 14:15:00',
   },
@@ -68,7 +69,7 @@ export const INITIAL_GENERAL_RECEIPTS: GeneralReceiptRecord[] = [
     paymentMode: 'Cash',
     referenceNumber: 'CASH-COUNTER-021',
     remarks: 'Contribution towards community garden maintenance',
-    collectedBy: 'cashier1',
+    collectedBy: 'janabadmin',
     financialYear: '1447-1448 Hijri',
     createdAt: '2026-10-18 11:45:00',
   },
@@ -216,6 +217,9 @@ export const calculateFinancialMetrics = (
   const bookings = getStoredBookings();
   const generalReceipts = getStoredGeneralReceipts();
   const hofs = getStoredHofs();
+  const fmbCollections = getStoredCollections();
+  const sabeelTransactions = getStoredSabeelTransactions();
+  const hasDateFilter = Boolean(startDate || endDate);
 
   // Create quick Mohallah lookup by ITS
   const hofMohallahMap = new Map<string, string>();
@@ -235,8 +239,25 @@ export const calculateFinancialMetrics = (
   }
 
   const fmbTarget = filteredTakhmeens.reduce((sum, t) => sum + (t.committedAmount || 0), 0);
-  const fmbCollected = filteredTakhmeens.reduce((sum, t) => sum + (t.paidAmount || 0), 0);
   const fmbOutstanding = filteredTakhmeens.reduce((sum, t) => sum + (t.balanceDue || 0), 0);
+
+  let fmbCollected = filteredTakhmeens.reduce((sum, t) => sum + (t.paidAmount || 0), 0);
+  if (hasDateFilter) {
+    let filteredFmbReceipts = fmbCollections;
+    if (mohallahFilter && mohallahFilter !== 'all') {
+      filteredFmbReceipts = filteredFmbReceipts.filter(
+        (c) => hofMohallahMap.get(c.itsNumber) === mohallahFilter
+      );
+    }
+    filteredFmbReceipts = filteredFmbReceipts.filter((c) => {
+      const iso = toIsoDate(c.date);
+      if (!iso) return false;
+      if (startDate && iso < startDate) return false;
+      if (endDate && iso > endDate) return false;
+      return true;
+    });
+    fmbCollected = filteredFmbReceipts.reduce((sum, c) => sum + (c.amount || 0), 0);
+  }
 
   // Filter Sabeel Ledgers
   let filteredSabeel = sabeelLedgers;
@@ -247,8 +268,30 @@ export const calculateFinancialMetrics = (
   }
 
   const sabeelTarget = filteredSabeel.reduce((sum, s) => sum + (s.committedAmount || 0), 0);
-  const sabeelCollected = filteredSabeel.reduce((sum, s) => sum + (s.paidAmount || 0), 0);
   const sabeelOutstanding = filteredSabeel.reduce((sum, s) => sum + (s.balanceDue || 0), 0);
+
+  let sabeelCollected = filteredSabeel.reduce((sum, s) => sum + (s.paidAmount || 0), 0);
+  if (hasDateFilter) {
+    let filteredSabeelTx = sabeelTransactions;
+    if (mohallahFilter && mohallahFilter !== 'all') {
+      filteredSabeelTx = filteredSabeelTx.filter(
+        (t) =>
+          t.mohallah === mohallahFilter ||
+          hofMohallahMap.get(t.itsNumber) === mohallahFilter
+      );
+    }
+    filteredSabeelTx = filteredSabeelTx.filter((t) => {
+      const iso = toIsoDate(t.paymentDate || t.date);
+      if (!iso) return false;
+      if (startDate && iso < startDate) return false;
+      if (endDate && iso > endDate) return false;
+      return true;
+    });
+    sabeelCollected = filteredSabeelTx.reduce(
+      (sum, t) => sum + (t.amountPaid ?? t.amount ?? 0),
+      0
+    );
+  }
 
   // Filter Hall Bookings
   let filteredBookings = bookings;
@@ -257,11 +300,14 @@ export const calculateFinancialMetrics = (
       (b) => hofMohallahMap.get(b.itsNumber) === mohallahFilter
     );
   }
-  if (startDate) {
-    filteredBookings = filteredBookings.filter((b) => b.eventDate >= startDate);
-  }
-  if (endDate) {
-    filteredBookings = filteredBookings.filter((b) => b.eventDate <= endDate);
+  if (hasDateFilter) {
+    filteredBookings = filteredBookings.filter((b) => {
+      const iso = toIsoDate(b.eventDate);
+      if (!iso) return false;
+      if (startDate && iso < startDate) return false;
+      if (endDate && iso > endDate) return false;
+      return true;
+    });
   }
 
   const hallBookingEarnings = filteredBookings.reduce((sum, b) => sum + (b.paidAmount || 0), 0);
@@ -279,11 +325,14 @@ export const calculateFinancialMetrics = (
         (r.itsNumber && hofMohallahMap.get(r.itsNumber) === mohallahFilter)
     );
   }
-  if (startDate) {
-    filteredGenReceipts = filteredGenReceipts.filter((r) => r.date >= startDate);
-  }
-  if (endDate) {
-    filteredGenReceipts = filteredGenReceipts.filter((r) => r.date <= endDate);
+  if (hasDateFilter) {
+    filteredGenReceipts = filteredGenReceipts.filter((r) => {
+      const iso = toIsoDate(r.date);
+      if (!iso) return false;
+      if (startDate && iso < startDate) return false;
+      if (endDate && iso > endDate) return false;
+      return true;
+    });
   }
 
   const generalDonationsTotal = filteredGenReceipts.reduce((sum, r) => sum + (r.amount || 0), 0);
@@ -467,11 +516,14 @@ export const generateReportDataset = (
 
     case 'hall-revenue': {
       let filtered = bookings;
-      if (filters.startDate) {
-        filtered = filtered.filter((b) => b.eventDate >= filters.startDate!);
-      }
-      if (filters.endDate) {
-        filtered = filtered.filter((b) => b.eventDate <= filters.endDate!);
+      if (filters.startDate || filters.endDate) {
+        filtered = filtered.filter((b) => {
+          const iso = toIsoDate(b.eventDate);
+          if (!iso) return false;
+          if (filters.startDate && iso < filters.startDate) return false;
+          if (filters.endDate && iso > filters.endDate) return false;
+          return true;
+        });
       }
       if (filters.status && filters.status !== 'all') {
         filtered = filtered.filter((b) => b.paymentStatus === filters.status);
@@ -517,11 +569,14 @@ export const generateReportDataset = (
 
     case 'activity-audit': {
       let filtered = activityLogs;
-      if (filters.startDate) {
-        filtered = filtered.filter((a) => a.timestamp >= filters.startDate!);
-      }
-      if (filters.endDate) {
-        filtered = filtered.filter((a) => a.timestamp <= filters.endDate!);
+      if (filters.startDate || filters.endDate) {
+        filtered = filtered.filter((a) => {
+          const iso = toIsoDate(a.timestamp);
+          if (!iso) return false;
+          if (filters.startDate && iso < filters.startDate) return false;
+          if (filters.endDate && iso > filters.endDate) return false;
+          return true;
+        });
       }
 
       const headers = [

@@ -1,15 +1,20 @@
 import React, { useState } from 'react';
-import { User, Lock, Eye, EyeOff, AlertCircle, Info, X, LogIn } from 'lucide-react';
-import { getStoredUsers } from '../utils/rbac';
-import { UserPermissionsMap } from '../types';
+import {
+  User,
+  Lock,
+  Eye,
+  EyeOff,
+  AlertCircle,
+  Info,
+  X,
+  LogIn,
+  ShieldCheck,
+} from 'lucide-react';
+import { UserProfile } from '../types';
+import { authenticateJanab } from '../utils/auth';
 
 interface LoginPageProps {
-  onLoginSuccess: (user: {
-    username: string;
-    role: string;
-    displayName: string;
-    permissions?: UserPermissionsMap | 'all' | null;
-  }) => void;
+  onLoginSuccess: (user: UserProfile) => void;
 }
 
 export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
@@ -18,75 +23,42 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [showForgotModal, setShowForgotModal] = useState(false);
+  const [showInfoModal, setShowInfoModal] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
 
-    // Validate credentials
-    const trimmedUser = username.trim();
-    if (!trimmedUser || !password) {
-      setErrorMessage('Please enter both username and password.');
+    if (!username.trim() || !password) {
+      setErrorMessage('Please enter both the Janab username and password.');
       return;
     }
 
     setIsLoading(true);
-
-    // Simulated verification for smooth UX feel
     setTimeout(() => {
-      // 1. Super Admin (Janab) credentials verification
-      const rootPwd = localStorage.getItem('janab_root_pwd') || 'jamat#5253';
-      if (trimmedUser === 'janabadmin' && (password === rootPwd || password === 'jamat#5253')) {
-        setIsLoading(false);
-        onLoginSuccess({
-          username: 'janabadmin',
-          displayName: 'Janab Amil Saheb',
-          role: 'Super Admin',
-          permissions: 'all',
-        });
-        return;
-      }
-
-      // 2. Department personnel verification from managed RBAC store
-      const storedUsers = getStoredUsers();
-      const matched = storedUsers.find(
-        (u) =>
-          u.username.toLowerCase() === trimmedUser.toLowerCase() &&
-          u.password === password
-      );
-
-      if (matched) {
-        setIsLoading(false);
-        onLoginSuccess({
-          username: matched.username,
-          displayName: matched.fullName,
-          role: matched.department,
-          permissions: matched.permissions,
-        });
-        return;
-      }
-
+      const res = authenticateJanab(username, password);
       setIsLoading(false);
-      setErrorMessage('Invalid username or password. Please verify your credentials.');
-    }, 450);
+      if (!res.ok || !res.user) {
+        setErrorMessage(res.error || 'Authentication failed.');
+        return;
+      }
+      onLoginSuccess(res.user);
+    }, 300);
   };
 
   return (
     <div className="relative min-h-screen w-full flex items-center justify-center p-4 sm:p-6 overflow-hidden select-none">
-      {/* 1. FULL BACKGROUND IMAGE DISPLAY: Sharp, HD, non-blurred cover */}
+      {/* Background Cover */}
       <div
         className="absolute inset-0 min-h-screen w-full bg-cover bg-center bg-no-repeat"
         style={{ backgroundImage: `url('/Galiakot_image.jpg')` }}
         aria-hidden="true"
       />
-      {/* Subtle translucent dark tint for contrast */}
-      <div className="absolute inset-0 bg-slate-950/25" />
+      <div className="absolute inset-0 bg-slate-950/35" />
 
-      {/* 2. SEMI-TRANSPARENT GLASSMORPHISM CARD */}
-      <div className="relative z-10 w-full max-w-md bg-white/75 backdrop-blur-md border border-white/60 shadow-2xl rounded-3xl p-6 sm:p-8 transition-all animate-in fade-in zoom-in-95 duration-300">
-        
-        {/* Top Header & LOGO: Center-aligned 90px logo */}
+      {/* Login Card */}
+      <div className="relative z-10 w-full max-w-md bg-white/85 backdrop-blur-md border border-white/70 shadow-2xl rounded-3xl p-6 sm:p-8 transition-all animate-in fade-in zoom-in-95 duration-300">
+        {/* Header & Emblem */}
         <div className="flex flex-col items-center text-center mb-6">
           <div className="relative group mb-3">
             <div className="absolute -inset-1 rounded-2xl bg-amber-400/25 blur-sm group-hover:bg-amber-400/40 transition-all" />
@@ -99,25 +71,30 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             />
           </div>
 
-          {/* BRANDING: Jamaat ERP Portal & Anjuman e Mufaddal */}
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
             Jamaat ERP Portal
           </h1>
           <p className="text-xs sm:text-sm font-semibold text-amber-800 tracking-wider uppercase mt-1">
             Anjuman e Mufaddal
           </p>
-          <div className="w-12 h-1 bg-amber-400 rounded-full mt-2.5 mx-auto" />
+          <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100/90 border border-amber-300 text-[11px] font-bold text-amber-950">
+            <ShieldCheck className="w-3.5 h-3.5 text-amber-700" />
+            <span>Janab Exclusive Administrative Portal</span>
+          </div>
         </div>
 
-        {/* VALIDATION RED ERROR ALERT BOX */}
+        {/* Inline Validation Alert */}
         {errorMessage && (
-          <div className="mb-5 flex items-start space-x-3 p-3.5 bg-red-50/90 border border-red-300/80 text-red-800 rounded-xl text-xs sm:text-sm animate-in slide-in-from-top-2 duration-200 shadow-xs backdrop-blur-xs">
+          <div
+            role="alert"
+            className="mb-5 flex items-start space-x-3 p-3.5 bg-red-50 border border-red-300 text-red-800 rounded-xl text-xs sm:text-sm animate-in slide-in-from-top-2 duration-200 shadow-xs"
+          >
             <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
             <div className="flex-1 font-medium">{errorMessage}</div>
             <button
               type="button"
               onClick={() => setErrorMessage(null)}
-              className="text-red-500 hover:text-red-700 p-0.5 rounded-md hover:bg-red-100 transition-colors"
+              className="text-red-500 hover:text-red-700 p-0.5 rounded-md hover:bg-red-100 transition-colors cursor-pointer"
               aria-label="Dismiss error"
             >
               <X className="w-4 h-4" />
@@ -125,15 +102,14 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
           </div>
         )}
 
-        {/* LOGIN FORM */}
+        {/* Login Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* USERNAME INPUT (Semi-transparent) */}
           <div>
             <label
               htmlFor="username"
               className="block text-xs font-bold uppercase tracking-wider text-slate-800 mb-1.5"
             >
-              Username
+              Janab Username
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
@@ -146,14 +122,16 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                 autoComplete="username"
                 required
                 value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="Enter your username"
-                className="w-full pl-11 pr-4 py-3 bg-white/60 border border-slate-300/80 focus:border-amber-500 focus:bg-white/90 focus:ring-2 focus:ring-amber-400/20 rounded-xl text-slate-900 text-sm font-medium placeholder:text-slate-500 outline-hidden transition-all shadow-xs backdrop-blur-xs"
+                onChange={(e) => {
+                  setUsername(e.target.value);
+                  if (errorMessage) setErrorMessage(null);
+                }}
+                placeholder="Enter janabadmin"
+                className="w-full pl-11 pr-4 py-3 bg-white/80 border border-slate-300 focus:border-amber-500 focus:bg-white focus:ring-2 focus:ring-amber-400/20 rounded-xl text-slate-900 text-sm font-medium placeholder:text-slate-400 outline-hidden transition-all shadow-xs"
               />
             </div>
           </div>
 
-          {/* PASSWORD INPUT (Semi-transparent) */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <label
@@ -162,13 +140,12 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
               >
                 Password
               </label>
-              {/* FORGOT PASSWORD LINK */}
               <button
                 type="button"
-                onClick={() => setShowForgotModal(true)}
-                className="text-xs font-semibold text-amber-700 hover:text-amber-800 hover:underline transition-colors cursor-pointer"
+                onClick={() => setShowInfoModal(true)}
+                className="text-xs font-semibold text-amber-800 hover:text-amber-900 hover:underline transition-colors cursor-pointer"
               >
-                Forgot Password?
+                Password Policy
               </button>
             </div>
             <div className="relative">
@@ -182,9 +159,12 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                 autoComplete="current-password"
                 required
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter your password"
-                className="w-full pl-11 pr-11 py-3 bg-white/60 border border-slate-300/80 focus:border-amber-500 focus:bg-white/90 focus:ring-2 focus:ring-amber-400/20 rounded-xl text-slate-900 text-sm font-medium placeholder:text-slate-500 outline-hidden transition-all shadow-xs backdrop-blur-xs"
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (errorMessage) setErrorMessage(null);
+                }}
+                placeholder="Enter Janab password"
+                className="w-full pl-11 pr-11 py-3 bg-white/80 border border-slate-300 focus:border-amber-500 focus:bg-white focus:ring-2 focus:ring-amber-400/20 rounded-xl text-slate-900 text-sm font-medium placeholder:text-slate-400 outline-hidden transition-all shadow-xs"
               />
               <button
                 type="button"
@@ -201,7 +181,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             </div>
           </div>
 
-          {/* LOGIN BUTTON */}
           <div className="pt-2">
             <button
               type="submit"
@@ -216,26 +195,26 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
               ) : (
                 <div className="flex items-center space-x-2">
                   <LogIn className="w-4 h-4" />
-                  <span>Login to Portal</span>
+                  <span>Login to Janab Portal</span>
                 </div>
               )}
             </button>
           </div>
         </form>
 
-        {/* Footnote / Quick Info */}
-        <div className="mt-6 text-center border-t border-slate-100 pt-4">
-          <p className="text-[11px] text-slate-400 font-medium">
-            Authorized Personnel & Committee Members Only
+        {/* Footnote */}
+        <div className="mt-6 text-center border-t border-slate-200/80 pt-4">
+          <p className="text-[11px] text-slate-500 font-medium">
+            Restricted to Janab Amil Saheb • Public Sign-Up &amp; General Accounts Disabled
           </p>
         </div>
       </div>
 
-      {/* FORGOT PASSWORD MODAL */}
-      {showForgotModal && (
+      {/* Password Policy Modal */}
+      {showInfoModal && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
-          onClick={() => setShowForgotModal(false)}
+          onClick={() => setShowInfoModal(false)}
           role="dialog"
           aria-modal="true"
         >
@@ -243,18 +222,20 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             className="w-full max-w-sm bg-white rounded-2xl p-6 shadow-2xl border border-amber-200 text-center animate-in zoom-in-95 duration-200"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="w-12 h-12 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-3 shadow-inner">
+            <div className="w-12 h-12 bg-amber-100 text-amber-700 rounded-full flex items-center justify-center mx-auto mb-3 shadow-inner">
               <Info className="w-6 h-6" />
             </div>
             <h3 className="text-lg font-bold text-slate-900 mb-2">
-              Password Reset Request
+              Janab Security Protocol
             </h3>
             <p className="text-sm text-slate-600 leading-relaxed mb-6 font-medium">
-              Please contact Super Admin / Janab for password reset.
+              Public sign-up and external password recovery are disabled. Only the authenticated{' '}
+              <span className="font-bold text-slate-900">Janab (janabadmin)</span> session may reset credentials from{' '}
+              <span className="font-semibold">System Settings &rarr; Janab Password Reset</span>.
             </p>
             <button
               type="button"
-              onClick={() => setShowForgotModal(false)}
+              onClick={() => setShowInfoModal(false)}
               className="w-full py-2.5 px-4 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-sm rounded-xl transition-all shadow-xs cursor-pointer"
             >
               Understood

@@ -5,6 +5,13 @@ import {
 } from 'lucide-react';
 import { SabeelTransactionEntry, SabeelLedgerRecord, SabeelPaymentMode } from '../../types';
 import { SabeelTypeRecord } from '../../utils/sabeelProductionSuite';
+import {
+  DateFilterState,
+  createDefaultDateFilter,
+  matchesDateFilter,
+  resolveDateRange,
+} from '../../utils/dateFilters';
+import { DateFilterBar } from '../common/DateFilterBar';
 
 interface SabeelDatewisePaymentwiseSubpageProps {
   transactions: SabeelTransactionEntry[];
@@ -24,13 +31,16 @@ export const SabeelDatewisePaymentwiseSubpage: React.FC<SabeelDatewisePaymentwis
   const [activeReportTab, setActiveReportTab] = useState<'datewise' | 'paymentwise'>('datewise');
 
   // Filters
-  const [fromDate, setFromDate] = useState('2025-04-01');
-  const [toDate, setToDate] = useState(new Date().toISOString().split('T')[0]);
+  const [dateFilter, setDateFilter] = useState<DateFilterState>(() =>
+    createDefaultDateFilter('all')
+  );
   const [mohallaFilter, setMohallaFilter] = useState('ALL');
   const [sabeelTypeFilter, setSabeelTypeFilter] = useState('ALL');
   const [sabeelNoFilter, setSabeelNoFilter] = useState('');
   const [userFilter, setUserFilter] = useState('ALL');
   const [payTypeFilter, setPayTypeFilter] = useState('ALL');
+
+  const resolvedRange = useMemo(() => resolveDateRange(dateFilter), [dateFilter]);
 
   // Distinct Mohallas & Users
   const distinctMohallas = useMemo(() => {
@@ -53,14 +63,14 @@ export const SabeelDatewisePaymentwiseSubpage: React.FC<SabeelDatewisePaymentwis
   const filtered = useMemo(() => {
     return transactions.filter(t => {
       const pd = t.paymentDate || t.date;
-      if (pd < fromDate || pd > toDate) return false;
+      if (!matchesDateFilter(pd, dateFilter)) return false;
       if (mohallaFilter !== 'ALL' && (t.mohallah || '') !== mohallaFilter) return false;
       if (sabeelNoFilter.trim() && !(t.sabeelNo || '').toLowerCase().includes(sabeelNoFilter.toLowerCase().trim())) return false;
       if (userFilter !== 'ALL' && (t.receivedBy || t.collectedBy || '') !== userFilter) return false;
       if (payTypeFilter !== 'ALL' && (t.paymentMode || '') !== payTypeFilter) return false;
       return true;
     });
-  }, [transactions, fromDate, toDate, mohallaFilter, sabeelNoFilter, userFilter, payTypeFilter]);
+  }, [transactions, dateFilter, mohallaFilter, sabeelNoFilter, userFilter, payTypeFilter]);
 
   // Datewise Aggregations
   const datewiseData = useMemo(() => {
@@ -118,8 +128,7 @@ export const SabeelDatewisePaymentwiseSubpage: React.FC<SabeelDatewisePaymentwis
   }, [filtered]);
 
   const resetFilters = () => {
-    setFromDate('2025-04-01');
-    setToDate(new Date().toISOString().split('T')[0]);
+    setDateFilter(createDefaultDateFilter('all'));
     setMohallaFilter('ALL');
     setSabeelTypeFilter('ALL');
     setSabeelNoFilter('');
@@ -129,6 +138,7 @@ export const SabeelDatewisePaymentwiseSubpage: React.FC<SabeelDatewisePaymentwis
   };
 
   const handleExportCSV = () => {
+    const periodSlug = `${resolvedRange.from || 'all'}_${resolvedRange.to || 'all'}`;
     if (activeReportTab === 'datewise') {
       const headers = ['Date', 'Receipts Count', 'Cash', 'UPI', 'Bank Transfer', 'Cheque', 'Daily Total'];
       const rows = datewiseData.list.map(r => [
@@ -144,7 +154,7 @@ export const SabeelDatewisePaymentwiseSubpage: React.FC<SabeelDatewisePaymentwis
       const csv = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows].join('\n');
       const link = document.createElement('a');
       link.setAttribute('href', encodeURI(csv));
-      link.setAttribute('download', `Datewise_Sabeel_Report_${fromDate}_${toDate}.csv`);
+      link.setAttribute('download', `Datewise_Sabeel_Report_${periodSlug}.csv`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -160,7 +170,7 @@ export const SabeelDatewisePaymentwiseSubpage: React.FC<SabeelDatewisePaymentwis
       const csv = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows].join('\n');
       const link = document.createElement('a');
       link.setAttribute('href', encodeURI(csv));
-      link.setAttribute('download', `Paymentwise_Sabeel_Report_${fromDate}_${toDate}.csv`);
+      link.setAttribute('download', `Paymentwise_Sabeel_Report_${periodSlug}.csv`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -232,28 +242,19 @@ export const SabeelDatewisePaymentwiseSubpage: React.FC<SabeelDatewisePaymentwis
           </div>
         </div>
 
+        {/* Period Filter Bar */}
+        <div className="mt-4">
+          <DateFilterBar
+            value={dateFilter}
+            onChange={setDateFilter}
+            availableDates={transactions.map(t => t.paymentDate || t.date)}
+            title="Sabeel Period"
+            compact
+          />
+        </div>
+
         {/* Filter Inputs Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mt-4 text-xs">
-          <div>
-            <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1">From Date</label>
-            <input
-              type="date"
-              value={fromDate}
-              onChange={e => setFromDate(e.target.value)}
-              className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-amber-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1">To Date</label>
-            <input
-              type="date"
-              value={toDate}
-              onChange={e => setToDate(e.target.value)}
-              className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-amber-500"
-            />
-          </div>
-
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mt-3 text-xs">
           <div>
             <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1">Mohallah</label>
             <select

@@ -15,6 +15,8 @@ import {
   getStoredOpeningBalances,
 } from '../../utils/fmbPart1Data';
 import { UserProfile } from '../../types';
+import { toIsoDate } from '../../utils/dateFilters';
+import { QuickDatePresetsBar } from '../common/DateFilterBar';
 
 const fmtINR = (n: number) => `₹${n.toLocaleString('en-IN')}`;
 
@@ -72,8 +74,11 @@ export const NiyazIncomeEntrySubpage: React.FC<Props> = ({
       if (paymentModeFilter !== 'all' && e.paymentMode !== paymentModeFilter) return false;
 
       // 3. Date Range
-      if (startDate && e.date < startDate) return false;
-      if (endDate && e.date > endDate) return false;
+      if (startDate || endDate) {
+        const itemIso = toIsoDate(e.date) || e.date;
+        if (startDate && itemIso < startDate) return false;
+        if (endDate && itemIso > endDate) return false;
+      }
 
       // 4. Search Filter (Donor, ITS, Sabeel, Receipt No)
       if (searchQuery) {
@@ -216,7 +221,7 @@ export const NiyazIncomeEntrySubpage: React.FC<Props> = ({
               Income Head & Niyaz Income Entry List
             </h2>
             <p className="text-xs text-slate-600 mt-0.5">
-              Record annual FMB Hub collections, deg sponsorships, and miscellaneous revenue [cite: 38, 39, 40]
+              Record annual FMB Hub collections, deg sponsorships, and miscellaneous revenue
             </p>
           </div>
         </div>
@@ -324,10 +329,9 @@ export const NiyazIncomeEntrySubpage: React.FC<Props> = ({
           <div>
             <label className="font-bold text-slate-700 block mb-1">From Date</label>
             <input
-              type="text"
+              type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              placeholder="e.g. 1447-02-01"
               className="w-full px-3 py-1.5 rounded-xl border border-slate-300 font-mono text-slate-900 focus:ring-2 focus:ring-amber-500 outline-none"
             />
           </div>
@@ -336,17 +340,27 @@ export const NiyazIncomeEntrySubpage: React.FC<Props> = ({
           <div>
             <label className="font-bold text-slate-700 block mb-1">To Date</label>
             <input
-              type="text"
+              type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              placeholder="e.g. 1447-02-29"
               className="w-full px-3 py-1.5 rounded-xl border border-slate-300 font-mono text-slate-900 focus:ring-2 focus:ring-amber-500 outline-none"
             />
           </div>
         </div>
 
-        {(searchQuery || categoryFilter !== 'all' || paymentModeFilter !== 'all' || startDate || endDate) && (
-          <div className="flex justify-end pt-1">
+        {/* Quick Date Presets Bar */}
+        <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
+          <QuickDatePresetsBar
+            fromDate={startDate}
+            toDate={endDate}
+            onSelectRange={(from, to) => {
+              setStartDate(from);
+              setEndDate(to);
+            }}
+            availableDates={entries.map((e) => e.date)}
+          />
+
+          {(searchQuery || categoryFilter !== 'all' || paymentModeFilter !== 'all' || startDate || endDate) && (
             <button
               type="button"
               onClick={() => {
@@ -360,8 +374,8 @@ export const NiyazIncomeEntrySubpage: React.FC<Props> = ({
             >
               Reset All Filters
             </button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* ── Income Entry List Table ── */}

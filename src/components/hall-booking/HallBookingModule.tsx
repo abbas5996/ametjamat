@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Building2,
   Calendar,
@@ -20,21 +20,30 @@ import {
 } from '../../utils/hallBooking';
 import { getStoredHofs } from '../../utils/memberMaster';
 import { checkUserPermission } from '../../utils/rbac';
+import { isJanabUser } from '../../utils/auth';
 import { FacilityDirectorySubpage } from './FacilityDirectorySubpage';
 import { BookingCalendarSubpage } from './BookingCalendarSubpage';
 import { BookingPaymentLedgerSubpage } from './BookingPaymentLedgerSubpage';
 
 interface HallBookingModuleProps {
   currentUser: UserProfile;
+  activeSubItemId?: string;
   subItemLabel: string;
   financialYear: FinancialYear;
   showToast: (msg: string) => void;
 }
 
+const mapSubItemToHallTab = (subItemId?: string): 'facilities' | 'calendar' | 'ledger' => {
+  if (subItemId === 'hall-calendar') return 'calendar';
+  if (subItemId === 'hall-ledger') return 'ledger';
+  return 'facilities';
+};
+
 export const HallBookingModule: React.FC<HallBookingModuleProps> = ({
   currentUser,
-  subItemLabel,
-  financialYear,
+  activeSubItemId,
+  subItemLabel: _subItemLabel,
+  financialYear: _financialYear,
   showToast,
 }) => {
   // Shared persistent state
@@ -43,10 +52,16 @@ export const HallBookingModule: React.FC<HallBookingModuleProps> = ({
   const [payments, setPayments] = useState<BookingPaymentLedgerEntry[]>(() =>
     getStoredBookingPayments()
   );
-  const [hofs, setHofs] = useState<HeadOfFamily[]>(() => getStoredHofs());
+  const [hofs] = useState<HeadOfFamily[]>(() => getStoredHofs());
 
-  // Active Sub-tab state
-  const [activeTab, setActiveTab] = useState<'facilities' | 'calendar' | 'ledger'>('facilities');
+  // Active Sub-tab state synced with sidebar selection
+  const [activeTab, setActiveTab] = useState<'facilities' | 'calendar' | 'ledger'>(() =>
+    mapSubItemToHallTab(activeSubItemId)
+  );
+
+  useEffect(() => {
+    setActiveTab(mapSubItemToHallTab(activeSubItemId));
+  }, [activeSubItemId]);
 
   // Pre-selected parameters when cross-navigating between tabs
   const [targetFacilityId, setTargetFacilityId] = useState<string | undefined>(undefined);
@@ -64,7 +79,12 @@ export const HallBookingModule: React.FC<HallBookingModuleProps> = ({
   };
 
   // Granular RBAC View Permission
-  const canViewHallBooking = checkUserPermission(currentUser, 'hall-booking', 'view');
+  const canViewHallBooking =
+    isJanabUser(currentUser) ||
+    checkUserPermission(currentUser, 'hall-facilities', 'view') ||
+    checkUserPermission(currentUser, 'hall-calendar', 'view') ||
+    checkUserPermission(currentUser, 'hall-ledger', 'view') ||
+    checkUserPermission(currentUser, 'hall-booking', 'view');
 
   if (!canViewHallBooking) {
     return (

@@ -4,8 +4,14 @@ import { Sidebar } from './components/Sidebar';
 import { MainContent } from './components/MainContent';
 import { LoginPage } from './components/LoginPage';
 import { NAVIGATION_CATEGORIES } from './data/navigation';
-import { FinancialYear, UserProfile, UserPermissionsMap } from './types';
+import { FinancialYear, UserProfile } from './types';
 import { filterNavigationForUser } from './utils/rbac';
+import {
+  clearJanabSession,
+  isJanabUser,
+  persistJanabSession,
+  restoreJanabSession,
+} from './utils/auth';
 import { CheckCircle2, X } from 'lucide-react';
 
 /** Blank user profile used before (and after) authentication. */
@@ -18,37 +24,22 @@ const BLANK_USER: UserProfile = {
 };
 
 export const App: React.FC = () => {
-  // Restore authenticated session from localStorage if present
-  const [currentUser, setCurrentUser] = useState<UserProfile>(() => {
-    try {
-      const stored = localStorage.getItem('jamat_user');
-      const isAuth = localStorage.getItem('jamat_auth_session') === 'true';
-      if (isAuth && stored) {
-        return JSON.parse(stored);
-      }
-    } catch (e) {
-      console.error('Failed to parse stored jamat_user:', e);
-    }
-    return BLANK_USER;
-  });
+  // Restore strictly verified Janab session from localStorage if present
+  const initialSession = useMemo(() => restoreJanabSession(), []);
 
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    try {
-      const isAuth = localStorage.getItem('jamat_auth_session') === 'true';
-      const stored = localStorage.getItem('jamat_user');
-      return !!(isAuth && stored);
-    } catch {
-      return false;
-    }
-  });
+  const [currentUser, setCurrentUser] = useState<UserProfile>(
+    () => initialSession || BLANK_USER
+  );
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(
+    () => !!initialSession && isJanabUser(initialSession)
+  );
 
   // Shell Layout State
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  // Mobile: drawer open/closed (independent from desktop collapsed state)
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
   const [selectedYear, setSelectedYear] = useState<FinancialYear>('1447-1448 Hijri');
 
-  // Dynamic Navigation Filtering based on logged-in user RBAC
+  // Navigation Filtering based on authenticated user
   const permittedCategories = useMemo(() => {
     return filterNavigationForUser(NAVIGATION_CATEGORIES, currentUser);
   }, [currentUser]);
@@ -57,7 +48,7 @@ export const App: React.FC = () => {
   const [activeCategoryId, setActiveCategoryId] = useState('dashboard');
   const [activeSubItemId, setActiveSubItemId] = useState('overview');
 
-  // Guard routing when active selection is not permitted for this user
+  // Guard routing when active selection does not exist in categories
   useEffect(() => {
     const isCatPermitted = permittedCategories.some((c) => c.id === activeCategoryId);
     if (!isCatPermitted && permittedCategories.length > 0) {
@@ -72,34 +63,9 @@ export const App: React.FC = () => {
     }
   }, [permittedCategories, activeCategoryId, activeSubItemId]);
 
-  // Expanded Categories State (Default all collapsed — user opens on demand)
+  // Expanded Categories State (Default Dashboard expanded for immediate discoverability)
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({
-    dashboard: false,
-    mumineen: false,
-    'member-master': false,
-    'mohalla-management': false,
-    'fmb-takhmeen': false,
-    'sabeel-management': false,
-    'faiz-hub': false,
-    'thaali-management': false,
-    'menu-management': false,
-    'stock-management': false,
-    'voluntary-contribution': false,
-    'community-schemes': false,
-    wajebaat: false,
-    'rent-management': false,
-    'qardan-hasanah': false,
-    'accounts-manager': false,
-    'madresa-module': false,
-    'miqaat-ashara': false,
-    'committee-trust': false,
-    'umur-framework': false,
-    'safar-mubarak': false,
-    'haj-mazar': false,
-    'appointment-messaging': false,
-    services: false,
-    'payments-receipts': false,
-    'system-settings': false,
+    dashboard: true,
   });
 
   // Toast Notification for Interactive Feedback
@@ -112,31 +78,27 @@ export const App: React.FC = () => {
     }, 3500);
   };
 
-  const handleLoginSuccess = (loginData: {
-    username: string;
-    role: string;
-    displayName: string;
-    permissions?: UserPermissionsMap | 'all' | null;
-  }) => {
-    const profile: UserProfile = {
-      username: loginData.username,
-      displayName: loginData.displayName,
-      role: loginData.role,
-      itsNumber: '30491024',
-      permissions: loginData.permissions ?? (loginData.username === 'janabadmin' ? 'all' : null),
-    };
+  const handleLoginSuccess = (profile: UserProfile) => {
+    if (!isJanabUser(profile)) {
+      showToast('Access restricted exclusively to Janab.');
+      return;
+    }
     setCurrentUser(profile);
     setIsAuthenticated(true);
-    localStorage.setItem('jamat_auth_session', 'true');
-    localStorage.setItem('jamat_user', JSON.stringify(profile));
-    showToast(`Welcome back, ${loginData.displayName}!`);
+    persistJanabSession(profile);
+    setActiveCategoryId('dashboard');
+    setActiveSubItemId('overview');
+    setExpandedCategories((prev) => ({ ...prev, dashboard: true }));
+    showToast(`Welcome back, ${profile.displayName}!`);
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('jamat_auth_session');
-    localStorage.removeItem('jamat_user');
+    clearJanabSession();
     setCurrentUser(BLANK_USER);
     setIsAuthenticated(false);
+    setIsMobileDrawerOpen(false);
+    setActiveCategoryId('dashboard');
+    setActiveSubItemId('overview');
     showToast('Logged out of Jamaat ERP Portal.');
   };
 
@@ -150,7 +112,7 @@ export const App: React.FC = () => {
   const handleSelectSubItem = (categoryId: string, subItemId: string) => {
     setActiveCategoryId(categoryId);
     setActiveSubItemId(subItemId);
-    // Close mobile drawer on nav selection
+    setExpandedCategories((prev) => ({ ...prev, [categoryId]: true }));
     setIsMobileDrawerOpen(false);
   };
 
@@ -162,6 +124,7 @@ export const App: React.FC = () => {
   const handleNavigateHome = () => {
     setActiveCategoryId('dashboard');
     setActiveSubItemId('overview');
+    setExpandedCategories((prev) => ({ ...prev, dashboard: true }));
   };
 
   // Find active titles for breadcrumbs and headers
@@ -174,8 +137,8 @@ export const App: React.FC = () => {
     currentCategory.items.find((item) => item.id === activeSubItemId) ||
     currentCategory.items[0] || { id: 'overview', label: 'Main Overview' };
 
-  // Dynamic Auth State Routing
-  if (!isAuthenticated) {
+  // Dynamic Auth State Routing — Unauthenticated visitors see Janab Login ONLY
+  if (!isAuthenticated || !isJanabUser(currentUser)) {
     return (
       <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col antialiased">
         <LoginPage onLoginSuccess={handleLoginSuccess} />
@@ -189,6 +152,7 @@ export const App: React.FC = () => {
               type="button"
               onClick={() => setToastMessage(null)}
               className="text-slate-400 hover:text-white ml-2 shrink-0 min-h-[44px] min-w-[44px] flex items-center justify-center cursor-pointer"
+              aria-label="Close notification"
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -200,8 +164,7 @@ export const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#FEF3C7] text-[#0F172A] flex flex-col antialiased selection:bg-[#FDE68A] selection:text-[#92400E] overflow-x-hidden">
-
-      {/* ── DESKTOP SIDEBAR (lg+): fixed, always visible, collapsible ── */}
+      {/* Desktop Sidebar (lg+) */}
       <div className="hidden lg:block">
         <Sidebar
           isCollapsed={isSidebarCollapsed}
@@ -219,9 +182,8 @@ export const App: React.FC = () => {
         />
       </div>
 
-      {/* ── MOBILE DRAWER SIDEBAR (< lg): slide-over with backdrop ── */}
+      {/* Mobile Drawer Sidebar (< lg) */}
       <div className="lg:hidden">
-        {/* Backdrop overlay */}
         {isMobileDrawerOpen && (
           <div
             className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
@@ -245,13 +207,12 @@ export const App: React.FC = () => {
         />
       </div>
 
-      {/* Main App Container — shifted right by sidebar width on desktop */}
+      {/* Main App Container */}
       <div
         className={`flex-1 flex flex-col min-w-0 bg-[#FEF3C7] transition-all duration-300 ease-in-out ${
           isSidebarCollapsed ? 'lg:pl-[74px]' : 'lg:pl-[260px]'
         }`}
       >
-        {/* Top Navbar */}
         <Navbar
           isSidebarCollapsed={isSidebarCollapsed}
           onToggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
@@ -260,13 +221,10 @@ export const App: React.FC = () => {
           onYearChange={handleYearChange}
           user={currentUser}
           onLogout={handleLogout}
-          onOpenSettings={() => {
-            setActiveCategoryId('system-settings');
-            setActiveSubItemId('roles-permissions');
-          }}
+          onOpenPasswordReset={() => handleSelectSubItem('system-settings', 'change-password')}
+          onOpenSettings={() => handleSelectSubItem('system-settings', 'roles-permissions')}
         />
 
-        {/* Dynamic Main Content */}
         <MainContent
           activeCategoryId={activeCategoryId}
           categoryTitle={currentCategory.title}
@@ -275,6 +233,7 @@ export const App: React.FC = () => {
           financialYear={selectedYear}
           currentUser={currentUser}
           onNavigateHome={handleNavigateHome}
+          onNavigateToModule={handleSelectSubItem}
           onQuickAction={(actionName) => showToast(actionName)}
         />
       </div>
@@ -289,7 +248,8 @@ export const App: React.FC = () => {
           <button
             type="button"
             onClick={() => setToastMessage(null)}
-            className="text-slate-400 hover:text-white ml-2 shrink-0 min-h-[44px] min-w-[44px] flex items-center justify-center"
+            className="text-slate-400 hover:text-white ml-2 shrink-0 min-h-[44px] min-w-[44px] flex items-center justify-center cursor-pointer"
+            aria-label="Close notification"
           >
             <X className="w-3.5 h-3.5" />
           </button>

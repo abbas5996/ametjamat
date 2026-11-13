@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Search,
   Plus,
@@ -43,7 +43,6 @@ interface DirectoryHofSubpageProps {
   canDelete: boolean;
   showToast: (msg: string) => void;
   onNavigateToUpdater: (itsNumber: string) => void;
-  openAddModalTrigger?: number;
 }
 
 const RELATION_OPTIONS: FamilyRelation[] = [
@@ -71,7 +70,6 @@ export const DirectoryHofSubpage: React.FC<DirectoryHofSubpageProps> = ({
   canDelete,
   showToast,
   onNavigateToUpdater,
-  openAddModalTrigger,
 }) => {
   // Search and filter states
   const [searchTerm, setSearchTerm] = useState('');
@@ -211,25 +209,6 @@ export const DirectoryHofSubpage: React.FC<DirectoryHofSubpageProps> = ({
     setHofFormError(null);
     setIsHofModalOpen(true);
   };
-
-  // External trigger synchronization from top-right header button
-  useEffect(() => {
-    if (openAddModalTrigger && openAddModalTrigger > 0 && canAdd) {
-      handleOpenCreateHof();
-    }
-  }, [openAddModalTrigger, canAdd]);
-
-  useEffect(() => {
-    const handleCustomTrigger = () => {
-      if (canAdd) {
-        handleOpenCreateHof();
-      }
-    };
-    window.addEventListener('jamat_open_create_hof', handleCustomTrigger);
-    return () => {
-      window.removeEventListener('jamat_open_create_hof', handleCustomTrigger);
-    };
-  }, [canAdd, mohallahs]);
 
   // Open HOF Modal for Edit
   const handleOpenEditHof = (hof: HeadOfFamily) => {

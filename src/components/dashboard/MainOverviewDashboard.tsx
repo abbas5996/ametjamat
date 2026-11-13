@@ -56,6 +56,13 @@ import {
 } from '../../utils/hallBooking';
 import { getStoredGeneralReceipts } from '../../utils/executiveReports';
 import { getStoredActivityLogs } from '../../utils/rbac';
+import {
+  DateFilterState,
+  createDefaultDateFilter,
+  matchesDateFilter,
+  resolveDateRange,
+} from '../../utils/dateFilters';
+import { DateFilterBar } from '../common/DateFilterBar';
 
 export type ModuleFilterType = 'all' | 'fmb' | 'sabeel' | 'hall' | 'member' | 'reports';
 
@@ -72,8 +79,11 @@ export const MainOverviewDashboard: React.FC<MainOverviewDashboardProps> = ({
   onQuickAction,
   onNavigateToModule,
 }) => {
-  // Master Module Filter Dropdown
+  // Master Module & Date Period Filter
   const [activeModule, setActiveModule] = useState<ModuleFilterType>('all');
+  const [dateFilter, setDateFilter] = useState<DateFilterState>(() =>
+    createDefaultDateFilter('all')
+  );
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
 
@@ -125,7 +135,45 @@ export const MainOverviewDashboard: React.FC<MainOverviewDashboardProps> = ({
     };
   }, []);
 
-  // ── 1. GLOBAL AGGREGATIONS (Across All Modules) ──
+  // ── 1. GLOBAL & PERIOD-SCOPED AGGREGATIONS ──
+  const availableDates = useMemo(
+    () => [
+      ...fmbCollections.map((c) => c.date),
+      ...sabeelTransactions.map((t) => t.paymentDate || t.date),
+      ...bookings.map((b) => b.eventDate),
+      ...generalReceipts.map((r) => r.date),
+      ...activityLogs.map((a) => a.timestamp),
+    ],
+    [fmbCollections, sabeelTransactions, bookings, generalReceipts, activityLogs]
+  );
+
+  const isPeriodFiltered = dateFilter.mode !== 'all';
+  const resolvedPeriod = useMemo(() => resolveDateRange(dateFilter), [dateFilter]);
+
+  const filteredFmbCollections = useMemo(
+    () => fmbCollections.filter((c) => matchesDateFilter(c.date, dateFilter)),
+    [fmbCollections, dateFilter]
+  );
+  const filteredSabeelTransactions = useMemo(
+    () =>
+      sabeelTransactions.filter((t) =>
+        matchesDateFilter(t.paymentDate || t.date, dateFilter)
+      ),
+    [sabeelTransactions, dateFilter]
+  );
+  const filteredBookings = useMemo(
+    () => bookings.filter((b) => matchesDateFilter(b.eventDate, dateFilter)),
+    [bookings, dateFilter]
+  );
+  const filteredGeneralReceipts = useMemo(
+    () => generalReceipts.filter((r) => matchesDateFilter(r.date, dateFilter)),
+    [generalReceipts, dateFilter]
+  );
+  const filteredActivityLogs = useMemo(
+    () => activityLogs.filter((a) => matchesDateFilter(a.timestamp, dateFilter)),
+    [activityLogs, dateFilter]
+  );
+
   const totalHofsCount = hofs.length;
   const totalFamilyMembersCount = hofs.reduce(
     (sum, h) => sum + (h.familyMembers?.length || 0) + 1,
@@ -133,17 +181,27 @@ export const MainOverviewDashboard: React.FC<MainOverviewDashboardProps> = ({
   );
 
   const fmbCommitted = takhmeens.reduce((sum, t) => sum + (t.committedAmount || 0), 0);
-  const fmbCollected = takhmeens.reduce((sum, t) => sum + (t.paidAmount || 0), 0);
+  const fmbCollected = isPeriodFiltered
+    ? filteredFmbCollections.reduce((sum, c) => sum + (c.amount || 0), 0)
+    : takhmeens.reduce((sum, t) => sum + (t.paidAmount || 0), 0);
   const fmbOutstanding = takhmeens.reduce((sum, t) => sum + (t.balanceDue || 0), 0);
 
   const sabeelTarget = sabeelLedgers.reduce((sum, s) => sum + (s.committedAmount || 0), 0);
-  const sabeelCollected = sabeelLedgers.reduce((sum, s) => sum + (s.paidAmount || 0), 0);
+  const sabeelCollected = isPeriodFiltered
+    ? filteredSabeelTransactions.reduce(
+        (sum, t) => sum + (t.amountPaid ?? t.amount ?? 0),
+        0
+      )
+    : sabeelLedgers.reduce((sum, s) => sum + (s.paidAmount || 0), 0);
   const sabeelOutstanding = sabeelLedgers.reduce((sum, s) => sum + (s.balanceDue || 0), 0);
 
-  const hallEarnings = bookings.reduce((sum, b) => sum + (b.paidAmount || 0), 0);
-  const hallOutstanding = bookings.reduce((sum, b) => sum + (b.balanceDue || 0), 0);
+  const hallEarnings = filteredBookings.reduce((sum, b) => sum + (b.paidAmount || 0), 0);
+  const hallOutstanding = filteredBookings.reduce((sum, b) => sum + (b.balanceDue || 0), 0);
 
-  const generalDonations = generalReceipts.reduce((sum, r) => sum + (r.amount || 0), 0);
+  const generalDonations = filteredGeneralReceipts.reduce(
+    (sum, r) => sum + (r.amount || 0),
+    0
+  );
 
   const totalRevenue = fmbCollected + sabeelCollected + hallEarnings + generalDonations;
   const totalPendingDues = fmbOutstanding + sabeelOutstanding + hallOutstanding;
@@ -194,14 +252,25 @@ export const MainOverviewDashboard: React.FC<MainOverviewDashboardProps> = ({
                 }}
                 className="bg-transparent font-bold text-slate-900 outline-none cursor-pointer"
               >
-                <option value="all">🌐 All Modules (Unified View)</option>
-                <option value="fmb">🍲 FMB & Takhmeen</option>
-                <option value="sabeel">🪙 Sabeel Management</option>
-                <option value="hall">🏛️ Hall Booking & Facilities</option>
-                <option value="member">👥 Member Master & Demographics</option>
-                <option value="reports">📊 Reports & General Receipts</option>
+                <option value="all">All Modules (Unified View)</option>
+                <option value="fmb">FMB & Takhmeen</option>
+                <option value="sabeel">Sabeel Management</option>
+                <option value="hall">Hall Booking & Facilities</option>
+                <option value="member">Member Master & Demographics</option>
+                <option value="reports">Reports & General Receipts</option>
               </select>
             </div>
+
+            {onNavigateToModule && (
+              <button
+                type="button"
+                onClick={() => onNavigateToModule('payments-receipts', 'financial-summary')}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-lg text-xs font-bold text-amber-900 hover:bg-amber-100 transition-colors cursor-pointer min-h-[38px]"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5" />
+                <span>Executive Reports</span>
+              </button>
+            )}
 
             {/* Quick Refresh */}
             <button
@@ -214,6 +283,24 @@ export const MainOverviewDashboard: React.FC<MainOverviewDashboardProps> = ({
               <RefreshCw className={`w-3.5 h-3.5 text-slate-500 ${isRefreshing ? 'animate-spin' : ''}`} />
               <span className="hidden sm:inline">Sync Live</span>
             </button>
+          </div>
+        </div>
+
+        <div className="mt-3 pt-3 border-t border-slate-100 space-y-2">
+          <DateFilterBar
+            value={dateFilter}
+            onChange={setDateFilter}
+            availableDates={availableDates}
+            title="Dashboard Period"
+            compact
+          />
+          <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-500">
+            <span>
+              Active Window: <strong className="text-slate-800">{resolvedPeriod.label}</strong>
+            </span>
+            <span className="font-mono">
+              Updated {lastRefreshed.toLocaleTimeString()}
+            </span>
           </div>
         </div>
       </div>
@@ -521,20 +608,26 @@ export const MainOverviewDashboard: React.FC<MainOverviewDashboardProps> = ({
                 </div>
 
                 <div className="space-y-2.5 overflow-y-auto max-h-[220px] flex-1 pr-1">
-                  {activityLogs.slice(0, 5).map((log) => (
-                    <div
-                      key={log.id}
-                      className="p-2.5 rounded-lg border border-slate-100 bg-slate-50/70 text-xs space-y-0.5"
-                    >
-                      <div className="flex items-center justify-between text-[11px]">
-                        <span className="font-bold text-slate-900">
-                          @{log.username} • {log.actionType}
-                        </span>
-                        <span className="text-slate-400 font-mono text-[10px]">{log.timestamp}</span>
-                      </div>
-                      <p className="text-slate-600 text-[11px] truncate">{log.details}</p>
+                  {filteredActivityLogs.length === 0 ? (
+                    <div className="py-10 text-center text-xs text-slate-400 italic">
+                      No audited activity events match the selected period.
                     </div>
-                  ))}
+                  ) : (
+                    filteredActivityLogs.slice(0, 5).map((log) => (
+                      <div
+                        key={log.id}
+                        className="p-2.5 rounded-lg border border-slate-100 bg-slate-50/70 text-xs space-y-0.5"
+                      >
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="font-bold text-slate-900">
+                            @{log.username} • {log.actionType}
+                          </span>
+                          <span className="text-slate-400 font-mono text-[10px]">{log.timestamp}</span>
+                        </div>
+                        <p className="text-slate-600 text-[11px] truncate">{log.details}</p>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
             </div>
@@ -671,16 +764,24 @@ export const MainOverviewDashboard: React.FC<MainOverviewDashboardProps> = ({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {sabeelTransactions.slice(0, 6).map((tx) => (
-                      <tr key={tx.id} className="hover:bg-amber-50/30">
-                        <td className="py-2.5 px-3 font-mono font-bold text-amber-900">{tx.receiptNo}</td>
-                        <td className="py-2.5 px-3 font-semibold text-slate-900">{tx.hofName}</td>
-                        <td className="py-2.5 px-3 font-mono text-slate-500">{tx.sabeelNo}</td>
-                        <td className="py-2.5 px-3">{tx.paymentMode}</td>
-                        <td className="py-2.5 px-3 text-slate-500">{tx.date}</td>
-                        <td className="py-2.5 px-3 text-right font-mono font-bold text-emerald-700">₹{tx.amount.toLocaleString('en-IN')}</td>
+                    {filteredSabeelTransactions.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="py-8 text-center text-slate-400 italic">
+                          No Sabeel receipts recorded for the selected period.
+                        </td>
                       </tr>
-                    ))}
+                    ) : (
+                      filteredSabeelTransactions.slice(0, 6).map((tx) => (
+                        <tr key={tx.id} className="hover:bg-amber-50/30">
+                          <td className="py-2.5 px-3 font-mono font-bold text-amber-900">{tx.receiptNo}</td>
+                          <td className="py-2.5 px-3 font-semibold text-slate-900">{tx.hofName}</td>
+                          <td className="py-2.5 px-3 font-mono text-slate-500">{tx.sabeelNo}</td>
+                          <td className="py-2.5 px-3">{tx.paymentMode}</td>
+                          <td className="py-2.5 px-3 text-slate-500">{tx.date}</td>
+                          <td className="py-2.5 px-3 text-right font-mono font-bold text-emerald-700">₹{(tx.amountPaid ?? tx.amount).toLocaleString('en-IN')}</td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -702,7 +803,7 @@ export const MainOverviewDashboard: React.FC<MainOverviewDashboardProps> = ({
 
               <div className="bg-white border border-blue-200 rounded-xl p-4 shadow-xs">
                 <span className="text-[11px] font-bold text-blue-800 uppercase">Confirmed Bookings</span>
-                <div className="text-2xl font-black text-blue-800 font-mono mt-1">{bookings.length}</div>
+                <div className="text-2xl font-black text-blue-800 font-mono mt-1">{filteredBookings.length}</div>
                 <p className="text-[11px] text-blue-600 mt-0.5">Reservations logged</p>
               </div>
 
@@ -736,27 +837,35 @@ export const MainOverviewDashboard: React.FC<MainOverviewDashboardProps> = ({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {bookings.map((b) => (
-                      <tr key={b.id} className="hover:bg-amber-50/30">
-                        <td className="py-2.5 px-3 font-mono font-bold text-blue-900">{b.bookingCode}</td>
-                        <td className="py-2.5 px-3 font-semibold text-slate-900">{b.facilityName}</td>
-                        <td className="py-2.5 px-3 text-slate-500 font-mono">{b.eventDate}</td>
-                        <td className="py-2.5 px-3">{b.eventType}</td>
-                        <td className="py-2.5 px-3">{b.hofName}</td>
-                        <td className="py-2.5 px-3 text-right font-mono font-bold">₹{b.totalCharges.toLocaleString('en-IN')}</td>
-                        <td className="py-2.5 px-3">
-                          <span
-                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                              b.paymentStatus === 'Paid'
-                                ? 'bg-emerald-100 text-emerald-800'
-                                : 'bg-amber-100 text-amber-800'
-                            }`}
-                          >
-                            {b.paymentStatus}
-                          </span>
+                    {filteredBookings.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="py-8 text-center text-slate-400 italic">
+                          No hall bookings found for the selected period.
                         </td>
                       </tr>
-                    ))}
+                    ) : (
+                      filteredBookings.map((b) => (
+                        <tr key={b.id} className="hover:bg-amber-50/30">
+                          <td className="py-2.5 px-3 font-mono font-bold text-blue-900">{b.bookingCode}</td>
+                          <td className="py-2.5 px-3 font-semibold text-slate-900">{b.facilityName}</td>
+                          <td className="py-2.5 px-3 text-slate-500 font-mono">{b.eventDate}</td>
+                          <td className="py-2.5 px-3">{b.eventType}</td>
+                          <td className="py-2.5 px-3">{b.hofName}</td>
+                          <td className="py-2.5 px-3 text-right font-mono font-bold">₹{b.totalCharges.toLocaleString('en-IN')}</td>
+                          <td className="py-2.5 px-3">
+                            <span
+                              className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                b.paymentStatus === 'Paid'
+                                  ? 'bg-emerald-100 text-emerald-800'
+                                  : 'bg-amber-100 text-amber-800'
+                              }`}
+                            >
+                              {b.paymentStatus}
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -849,20 +958,20 @@ export const MainOverviewDashboard: React.FC<MainOverviewDashboardProps> = ({
               <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
                 <span className="text-[11px] font-bold text-slate-500 uppercase">Total General Receipts</span>
                 <div className="text-2xl font-black text-slate-900 font-mono mt-1">₹{generalDonations.toLocaleString('en-IN')}</div>
-                <p className="text-[11px] text-slate-500 mt-0.5">{generalReceipts.length} receipts generated</p>
+                <p className="text-[11px] text-slate-500 mt-0.5">{filteredGeneralReceipts.length} receipts generated</p>
               </div>
 
               <div className="bg-white border border-emerald-200 rounded-xl p-4 shadow-xs">
                 <span className="text-[11px] font-bold text-emerald-800 uppercase">Average Donation</span>
                 <div className="text-2xl font-black text-emerald-700 font-mono mt-1">
-                  ₹{generalReceipts.length > 0 ? Math.round(generalDonations / generalReceipts.length).toLocaleString('en-IN') : 0}
+                  ₹{filteredGeneralReceipts.length > 0 ? Math.round(generalDonations / filteredGeneralReceipts.length).toLocaleString('en-IN') : 0}
                 </div>
                 <p className="text-[11px] text-emerald-600 mt-0.5">Per receipt contribution</p>
               </div>
 
               <div className="bg-white border border-blue-200 rounded-xl p-4 shadow-xs">
                 <span className="text-[11px] font-bold text-blue-800 uppercase">System Audit Events</span>
-                <div className="text-2xl font-black text-blue-800 font-mono mt-1">{activityLogs.length}</div>
+                <div className="text-2xl font-black text-blue-800 font-mono mt-1">{filteredActivityLogs.length}</div>
                 <p className="text-[11px] text-blue-600 mt-0.5">Central audit trail entries logged</p>
               </div>
             </div>
@@ -883,16 +992,24 @@ export const MainOverviewDashboard: React.FC<MainOverviewDashboardProps> = ({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {generalReceipts.slice(0, 8).map((r) => (
-                      <tr key={r.id} className="hover:bg-amber-50/30">
-                        <td className="py-2.5 px-3 font-mono font-bold text-amber-900">{r.receiptNo}</td>
-                        <td className="py-2.5 px-3 font-semibold text-slate-900">{r.payerName}</td>
-                        <td className="py-2.5 px-3">{r.category}</td>
-                        <td className="py-2.5 px-3">{r.paymentMode}</td>
-                        <td className="py-2.5 px-3 text-slate-500 font-mono">{r.date}</td>
-                        <td className="py-2.5 px-3 text-right font-mono font-bold text-emerald-700">₹{r.amount.toLocaleString('en-IN')}</td>
+                    {filteredGeneralReceipts.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="py-8 text-center text-slate-400 italic">
+                          No general receipts found for the selected period.
+                        </td>
                       </tr>
-                    ))}
+                    ) : (
+                      filteredGeneralReceipts.slice(0, 8).map((r) => (
+                        <tr key={r.id} className="hover:bg-amber-50/30">
+                          <td className="py-2.5 px-3 font-mono font-bold text-amber-900">{r.receiptNo}</td>
+                          <td className="py-2.5 px-3 font-semibold text-slate-900">{r.payerName}</td>
+                          <td className="py-2.5 px-3">{r.category}</td>
+                          <td className="py-2.5 px-3">{r.paymentMode}</td>
+                          <td className="py-2.5 px-3 text-slate-500 font-mono">{r.date}</td>
+                          <td className="py-2.5 px-3 text-right font-mono font-bold text-emerald-700">₹{r.amount.toLocaleString('en-IN')}</td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>

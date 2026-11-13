@@ -119,12 +119,12 @@ export const FaizAdditionalMastersSubpage: React.FC<Props> = ({
 
   // Sub-Navigation Tabs
   const subTabs = [
-    { key: 'transfer',   label: 'Amount Transfer',    icon: ArrowLeftRight, cite: '[cite: 31]' },
-    { key: 'creditors',  label: 'Creditors Entry',    icon: Users,          cite: '[cite: 32]' },
-    { key: 'banks',      label: 'Bank Master',        icon: Landmark,       cite: '[cite: 33]' },
-    { key: 'tagging',    label: 'Tagging List',       icon: Tag,            cite: '[cite: 35]' },
-    { key: 'receipt-no', label: 'Receipt No Setting', icon: Hash,           cite: '[cite: 36]' },
-    { key: 'waiveoff',   label: 'Faiz WaiveOff List', icon: Percent,        cite: '[cite: 37]' },
+    { key: 'transfer',   label: 'Amount Transfer',    icon: ArrowLeftRight },
+    { key: 'creditors',  label: 'Creditors Entry',    icon: Users },
+    { key: 'banks',      label: 'Bank Master',        icon: Landmark },
+    { key: 'tagging',    label: 'Tagging List',       icon: Tag },
+    { key: 'receipt-no', label: 'Receipt No Setting', icon: Hash },
+    { key: 'waiveoff',   label: 'Faiz WaiveOff List', icon: Percent },
   ];
 
   /* ── Handlers ── */
@@ -289,7 +289,7 @@ export const FaizAdditionalMastersSubpage: React.FC<Props> = ({
               Faiz Additional Masters & Settings
             </h2>
             <p className="text-xs text-slate-600 mt-0.5">
-              Account transfers, vendor creditors, bank accounts, tagging rules, receipt numbers, and waivers [cite: 31, 32, 33, 35, 36, 37]
+              Account transfers, vendor creditors, bank accounts, tagging rules, receipt numbers, and waivers
             </p>
           </div>
         </div>
@@ -310,7 +310,7 @@ export const FaizAdditionalMastersSubpage: React.FC<Props> = ({
 
       {/* ── Sub-Master Navigation Ribbon ── */}
       <div className="bg-white border border-amber-300/60 rounded-xl p-1.5 shadow-xs flex items-center gap-1 overflow-x-auto select-none">
-        {subTabs.map(({ key, label, icon: Icon, cite }) => (
+        {subTabs.map(({ key, label, icon: Icon }) => (
           <button
             key={key}
             type="button"
@@ -326,19 +326,18 @@ export const FaizAdditionalMastersSubpage: React.FC<Props> = ({
           >
             <Icon className="w-4 h-4 text-amber-900" />
             <span>{label}</span>
-            <span className="text-[10px] text-slate-400 font-mono hidden sm:inline">{cite}</span>
           </button>
         ))}
       </div>
 
       {/* =========================================================================
-       * 1. AMOUNT TRANSFER (ACCOUNT TRANSFER LIST) [cite: 31]
+       * 1. AMOUNT TRANSFER (ACCOUNT TRANSFER LIST)
        * ========================================================================= */}
       {activeTab === 'transfer' && (
         <div className="bg-white border border-amber-300/60 rounded-2xl p-5 shadow-xs space-y-4">
           <div className="flex items-center justify-between text-xs">
             <div>
-              <h3 className="font-bold text-sm text-slate-900">Account Transfer List [cite: 31]</h3>
+              <h3 className="font-bold text-sm text-slate-900">Account Transfer List</h3>
               <p className="text-[11px] text-slate-500">Internal liquidity shifts between bank accounts and cash vaults</p>
             </div>
             <span className="font-bold text-slate-700">
@@ -392,7 +391,7 @@ export const FaizAdditionalMastersSubpage: React.FC<Props> = ({
         <div className="bg-white border border-amber-300/60 rounded-2xl p-5 shadow-xs space-y-4">
           <div className="flex items-center justify-between text-xs">
             <div>
-              <h3 className="font-bold text-sm text-slate-900">Creditors & Supplier Invoices [cite: 32]</h3>
+              <h3 className="font-bold text-sm text-slate-900">Creditors & Supplier Invoices</h3>
               <p className="text-[11px] text-slate-500">Track outstanding payable accounts to grocery merchants and kitchen vendors</p>
             </div>
             <div className="text-right">
@@ -453,7 +452,7 @@ export const FaizAdditionalMastersSubpage: React.FC<Props> = ({
         <div className="bg-white border border-amber-300/60 rounded-2xl p-5 shadow-xs space-y-4">
           <div className="flex items-center justify-between text-xs">
             <div>
-              <h3 className="font-bold text-sm text-slate-900">Bank Master Accounts [cite: 33]</h3>
+              <h3 className="font-bold text-sm text-slate-900">Bank Master Accounts</h3>
               <p className="text-[11px] text-slate-500">Official chartered banking repositories for FMB operations</p>
             </div>
           </div>
@@ -502,7 +501,7 @@ export const FaizAdditionalMastersSubpage: React.FC<Props> = ({
         <div className="bg-white border border-amber-300/60 rounded-2xl p-5 shadow-xs space-y-4">
           <div className="flex items-center justify-between text-xs">
             <div>
-              <h3 className="font-bold text-sm text-slate-900">Tagging List (Receipt / Payment / Extra Income) [cite: 35]</h3>
+              <h3 className="font-bold text-sm text-slate-900">Tagging List (Receipt / Payment / Extra Income)</h3>
               <p className="text-[11px] text-slate-500">Miqaat categorization tags for cost-center accounting and revenue segregation</p>
             </div>
           </div>
@@ -539,7 +538,7 @@ export const FaizAdditionalMastersSubpage: React.FC<Props> = ({
       {activeTab === 'receipt-no' && (
         <div className="bg-white border border-amber-300/60 rounded-2xl p-6 shadow-xs space-y-6">
           <div>
-            <h3 className="font-bold text-sm text-slate-900">Receipt No Setting & Prefix Rules [cite: 36]</h3>
+            <h3 className="font-bold text-sm text-slate-900">Receipt No Setting & Prefix Rules</h3>
             <p className="text-xs text-slate-500 mt-0.5">
               Configure continuation rules for Niyaz, Hoob, Zabihat, Mohalla-wise, and Paytype-wise sequencing
             </p>
@@ -590,7 +589,7 @@ export const FaizAdditionalMastersSubpage: React.FC<Props> = ({
                     onChange={(e) => setMohallaWise(e.target.checked)}
                     className="w-4 h-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500 cursor-pointer"
                   />
-                  <span className="font-bold text-slate-800">Mohalla-Wise Numbering Continuation [cite: 36]</span>
+                  <span className="font-bold text-slate-800">Mohalla-Wise Numbering Continuation</span>
                 </label>
                 <p className="text-[11px] text-slate-500 pl-6">
                   Appends Mohalla Sector prefix to the receipt sequence (e.g. FMB-HUB-SEC-A-01001).
@@ -605,7 +604,7 @@ export const FaizAdditionalMastersSubpage: React.FC<Props> = ({
                     onChange={(e) => setPaytypeWise(e.target.checked)}
                     className="w-4 h-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500 cursor-pointer"
                   />
-                  <span className="font-bold text-slate-800">Paytype-Wise Sequence Separation [cite: 36]</span>
+                  <span className="font-bold text-slate-800">Paytype-Wise Sequence Separation</span>
                 </label>
                 <p className="text-[11px] text-slate-500 pl-6">
                   Maintains separate running sequence books for Cash, Cheque, and Online POS transactions.
@@ -670,7 +669,7 @@ export const FaizAdditionalMastersSubpage: React.FC<Props> = ({
         <div className="bg-white border border-amber-300/60 rounded-2xl p-5 shadow-xs space-y-4">
           <div className="flex items-center justify-between text-xs">
             <div>
-              <h3 className="font-bold text-sm text-slate-900">Faiz WaiveOff & Concession List [cite: 37]</h3>
+              <h3 className="font-bold text-sm text-slate-900">Faiz WaiveOff & Concession List</h3>
               <p className="text-[11px] text-slate-500">Official exemptions and subsidized relief authorized by Janab Aamil Saheb</p>
             </div>
             <div className="text-right">

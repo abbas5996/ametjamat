@@ -210,14 +210,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <span className="relative inline-flex rounded-full h-2 w-2 bg-[#EAB308]"></span>
             </span>
             {!collapsed && (
-              <span className="text-[11px] font-medium text-[#1E293B]">
-                Live Jamaat Node
+              <span className="text-[11px] font-semibold text-[#1E293B]">
+                Janab Exclusive Auth
               </span>
             )}
           </div>
           {!collapsed && (
             <span className="text-[10px] font-mono text-[#334155]">
-              ITS: {user.itsNumber}
+              @{user.username}
             </span>
           )}
         </div>

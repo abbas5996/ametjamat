@@ -126,39 +126,58 @@ export const FaizHubModule: React.FC<Props> = ({
     },
   ];
 
+  const activeGroupIdx = Math.max(
+    0,
+    tabGroups.findIndex((g) => g.tabs.some((t) => t.key === activeTab))
+  );
+  const currentTabGroup = tabGroups[activeGroupIdx] || tabGroups[0];
+
   return (
     <div className="space-y-6">
-      {/* ── Sub-tab Navigation Ribbon ── */}
-      <div className="bg-white border border-amber-300/60 rounded-2xl p-2.5 shadow-xs space-y-2">
-        {tabGroups.map((group, gIdx) => (
-          <div key={gIdx} className="space-y-1">
-            <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 px-2 block">
+      {/* ── Streamlined 2-Tier Sub-tab Navigation Ribbon ── */}
+      <div className="bg-white border border-amber-300/60 rounded-2xl p-3 shadow-xs space-y-2.5">
+        <div className="flex flex-wrap items-center gap-1.5 pb-2 border-b border-slate-100">
+          <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 mr-1">
+            Section:
+          </span>
+          {tabGroups.map((group, gIdx) => (
+            <button
+              key={group.groupTitle}
+              type="button"
+              onClick={() => setActiveTab(group.tabs[0].key)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                gIdx === activeGroupIdx
+                  ? 'bg-slate-900 text-amber-300 shadow-xs'
+                  : 'bg-slate-100 text-slate-600 hover:bg-amber-50 hover:text-slate-900'
+              }`}
+            >
               {group.groupTitle}
-            </span>
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 select-none">
-              {group.tabs.map(({ key, label, icon, badge }) => (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => setActiveTab(key)}
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer shrink-0 ${
-                    activeTab === key
-                      ? 'bg-amber-400 text-slate-950 shadow-xs'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-amber-50'
-                  }`}
-                >
-                  {icon}
-                  <span>{label}</span>
-                  {badge && (
-                    <span className="ml-1 px-1.5 py-0.2 rounded-md text-[9px] bg-slate-900 text-amber-300 font-extrabold uppercase">
-                      {badge}
-                    </span>
-                  )}
-                </button>
-              ))}
-            </div>
-          </div>
-        ))}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 select-none">
+          {currentTabGroup.tabs.map(({ key, label, icon, badge }) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setActiveTab(key)}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer shrink-0 ${
+                activeTab === key
+                  ? 'bg-amber-400 text-slate-950 shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-amber-50'
+              }`}
+            >
+              {icon}
+              <span>{label}</span>
+              {badge && (
+                <span className="ml-1 px-1.5 py-0.2 rounded-md text-[9px] bg-slate-900 text-amber-300 font-extrabold uppercase">
+                  {badge}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* =========================================================================

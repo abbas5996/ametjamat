@@ -65,7 +65,7 @@ export const ShowDueOnReceiptSubpage: React.FC<Props> = ({
               Show Due on Receipt & Takhmeen Configuration
             </h2>
             <p className="text-xs text-slate-600 mt-0.5">
-              Control visibility of outstanding balances, previous arrears, and community identifiers on counter receipts [cite: 27]
+              Control visibility of outstanding balances, previous arrears, and community identifiers on counter receipts
             </p>
           </div>
         </div>
@@ -117,7 +117,7 @@ export const ShowDueOnReceiptSubpage: React.FC<Props> = ({
               {/* Toggle 3 */}
               <div className="py-3 flex items-center justify-between">
                 <div>
-                  <span className="font-bold text-xs text-slate-900 block">Show Outstanding Dues on Takhmeen Form [cite: 27]</span>
+                  <span className="font-bold text-xs text-slate-900 block">Show Outstanding Dues on Takhmeen Form</span>
                   <span className="text-[11px] text-slate-500">Pre-prints pending dues on annual pledge registration forms</span>
                 </div>
                 <input

@@ -17,6 +17,12 @@ import { getStoredHofs } from '../../utils/memberMaster';
 import { getStoredFaizHubs } from '../../utils/faizModule';
 import { getStoredThaalis } from '../../utils/fmbTakhmeen';
 import { UserProfile } from '../../types';
+import {
+  DateFilterState,
+  createDefaultDateFilter,
+  matchesDateFilter,
+} from '../../utils/dateFilters';
+import { DateFilterBar } from '../common/DateFilterBar';
 
 const fmtINR = (n: number) => `₹${n.toLocaleString('en-IN')}`;
 
@@ -46,9 +52,10 @@ export const FaizReportsSuiteSubpage: React.FC<Props> = ({
   const [thaalis] = useState(() => getStoredThaalis());
   const [giftAidRecords] = useState<FaizGiftAidRecord[]>(() => getStoredGiftAidRecords());
 
-  // 1. DATEWISE REPORT FILTERS [cite: 42, 43]
-  const [dwStartDate, setDwStartDate] = useState('');
-  const [dwEndDate, setDwEndDate] = useState('');
+  // 1. DATEWISE REPORT FILTERS
+  const [dwDateFilter, setDwDateFilter] = useState<DateFilterState>(() =>
+    createDefaultDateFilter('all')
+  );
   const [dwThaaliNo, setDwThaaliNo] = useState('');
   const [dwMohalla, setDwMohalla] = useState('ALL');
   const [dwUser, setDwUser] = useState('ALL');
@@ -78,11 +85,12 @@ export const FaizReportsSuiteSubpage: React.FC<Props> = ({
   // 5. GIFTAID REPORT FILTERS [cite: 46]
   const [gaStatusFilter, setGaStatusFilter] = useState('ALL');
 
-  // 6. NIYAZ LEDGER FILTERS [cite: 51]
+  // 6. NIYAZ LEDGER FILTERS
   const [ledgerType, setLedgerType] = useState<'Cash' | 'Bank'>('Cash');
   const [ledgerMohalla, setLedgerMohalla] = useState('ALL');
-  const [ledgerStartDate, setLedgerStartDate] = useState('');
-  const [ledgerEndDate, setLedgerEndDate] = useState('');
+  const [ledgerDateFilter, setLedgerDateFilter] = useState<DateFilterState>(() =>
+    createDefaultDateFilter('all')
+  );
 
   // Distinct Mohallas
   const distinctMohallas = useMemo(() => {
@@ -105,15 +113,14 @@ export const FaizReportsSuiteSubpage: React.FC<Props> = ({
     return receipts.filter(r => {
       if (r.isCancelled) return false;
       if (!dwModes[r.paymentMode]) return false;
-      if (dwStartDate && r.date < dwStartDate) return false;
-      if (dwEndDate && r.date > dwEndDate) return false;
+      if (!matchesDateFilter(r.date, dwDateFilter)) return false;
       if (dwThaaliNo && !r.thaaliNo.toLowerCase().includes(dwThaaliNo.toLowerCase())) return false;
       if (dwMohalla !== 'ALL' && r.mohalla !== dwMohalla) return false;
       if (dwUser !== 'ALL' && r.issuedBy !== dwUser) return false;
       if (dwCategory !== 'ALL Above' && r.category !== dwCategory) return false;
       return true;
     });
-  }, [receipts, dwModes, dwStartDate, dwEndDate, dwThaaliNo, dwMohalla, dwUser, dwCategory]);
+  }, [receipts, dwModes, dwDateFilter, dwThaaliNo, dwMohalla, dwUser, dwCategory]);
 
   /* =========================================================================
    * 2. YEARLY PROGRESSION MULTI-YEAR DATA (1433 to 1451 Hijri) [cite: 43]
@@ -241,14 +248,16 @@ export const FaizReportsSuiteSubpage: React.FC<Props> = ({
   }, [giftAidRecords, gaStatusFilter]);
 
   /* =========================================================================
-   * 6. NIYAZ LEDGER (CASH / BANK STATEMENT) [cite: 51]
+   * 6. NIYAZ LEDGER (CASH / BANK STATEMENT)
    * ========================================================================= */
   const ledgerEntries = useMemo(() => {
     let runningBalance = 150000;
     return receipts
       .filter(r => !r.isCancelled)
       .filter(r => ledgerType === 'Cash' ? r.paymentMode === 'Cash' : r.paymentMode !== 'Cash')
-      .map((r, idx) => {
+      .filter(r => ledgerMohalla === 'ALL' || r.mohalla === ledgerMohalla)
+      .filter(r => matchesDateFilter(r.date, ledgerDateFilter))
+      .map((r) => {
         runningBalance += r.amount;
         return {
           id: r.id,
@@ -261,7 +270,7 @@ export const FaizReportsSuiteSubpage: React.FC<Props> = ({
           user: r.issuedBy,
         };
       });
-  }, [receipts, ledgerType]);
+  }, [receipts, ledgerType, ledgerMohalla, ledgerDateFilter]);
 
   return (
     <div className="space-y-6">
@@ -276,7 +285,7 @@ export const FaizReportsSuiteSubpage: React.FC<Props> = ({
               Faiz Reporting & Analytics Suite
             </h2>
             <p className="text-xs text-slate-600 mt-0.5">
-              Datewise statements, multi-year progression (1433-1451H), progress milestones, outstanding aging, GiftAid & cash ledgers [cite: 42-46, 51]
+              Datewise statements, multi-year progression (1433-1451H), progress milestones, outstanding aging, GiftAid & cash ledgers
             </p>
           </div>
         </div>
@@ -294,13 +303,13 @@ export const FaizReportsSuiteSubpage: React.FC<Props> = ({
       {/* ── Reports Navigation Ribbon ── */}
       <div className="bg-white border border-amber-300/60 rounded-xl p-1.5 shadow-xs flex items-center gap-1 overflow-x-auto select-none">
         {[
-          { key: 'datewise' as ReportTab,    label: '1. Datewise Faiz Report',   icon: Calendar,  cite: '[cite: 42, 43]' },
-          { key: 'yearly' as ReportTab,      label: '2. Multi-Year Progression', icon: TrendingUp, cite: '[cite: 43]' },
-          { key: 'progress' as ReportTab,    label: '3. Progress & Milestones',  icon: CheckCircle2, cite: '[cite: 44]' },
-          { key: 'outstanding' as ReportTab, label: '4. Outstanding Report',     icon: AlertTriangle, cite: '[cite: 45]' },
-          { key: 'giftaid' as ReportTab,     label: '5. GiftAid Tax Claim',      icon: Gift,      cite: '[cite: 46]' },
-          { key: 'ledger' as ReportTab,      label: '6. Niyaz Cash/Bank Ledger', icon: BookOpen,  cite: '[cite: 51]' },
-        ].map(({ key, label, icon: Icon, cite }) => (
+          { key: 'datewise' as ReportTab,    label: '1. Datewise Faiz Report',   icon: Calendar },
+          { key: 'yearly' as ReportTab,      label: '2. Multi-Year Progression', icon: TrendingUp },
+          { key: 'progress' as ReportTab,    label: '3. Progress & Milestones',  icon: CheckCircle2 },
+          { key: 'outstanding' as ReportTab, label: '4. Outstanding Report',     icon: AlertTriangle },
+          { key: 'giftaid' as ReportTab,     label: '5. GiftAid Tax Claim',      icon: Gift },
+          { key: 'ledger' as ReportTab,      label: '6. Niyaz Cash/Bank Ledger', icon: BookOpen },
+        ].map(({ key, label, icon: Icon }) => (
           <button
             key={key}
             type="button"
@@ -313,42 +322,27 @@ export const FaizReportsSuiteSubpage: React.FC<Props> = ({
           >
             <Icon className="w-4 h-4 text-amber-900" />
             <span>{label}</span>
-            <span className="text-[10px] text-slate-400 font-mono hidden sm:inline">{cite}</span>
           </button>
         ))}
       </div>
 
       {/* =========================================================================
-       * 1. DATEWISE FAIZ REPORTS [cite: 42, 43]
+       * 1. DATEWISE FAIZ REPORTS
        * ========================================================================= */}
       {activeReportTab === 'datewise' && (
         <div className="space-y-4">
           <div className="bg-white border border-amber-300/60 rounded-2xl p-5 shadow-xs space-y-4">
-            <h3 className="font-bold text-sm text-slate-900">Datewise Multi-Filter Criteria [cite: 42, 43]</h3>
+            <h3 className="font-bold text-sm text-slate-900">Datewise Multi-Filter Criteria</h3>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 text-xs">
-              <div>
-                <label className="font-bold text-slate-700 block mb-1">From Date</label>
-                <input
-                  type="text"
-                  value={dwStartDate}
-                  onChange={(e) => setDwStartDate(e.target.value)}
-                  placeholder="e.g. 1447-02-01"
-                  className="w-full px-3 py-1.5 rounded-xl border border-slate-300 font-mono"
-                />
-              </div>
+            <DateFilterBar
+              value={dwDateFilter}
+              onChange={setDwDateFilter}
+              availableDates={receipts.map(r => r.date)}
+              title="Receipt Period"
+              compact
+            />
 
-              <div>
-                <label className="font-bold text-slate-700 block mb-1">To Date</label>
-                <input
-                  type="text"
-                  value={dwEndDate}
-                  onChange={(e) => setDwEndDate(e.target.value)}
-                  placeholder="e.g. 1447-02-29"
-                  className="w-full px-3 py-1.5 rounded-xl border border-slate-300 font-mono"
-                />
-              </div>
-
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
               <div>
                 <label className="font-bold text-slate-700 block mb-1">Thaali No</label>
                 <input
@@ -843,44 +837,54 @@ export const FaizReportsSuiteSubpage: React.FC<Props> = ({
        * ========================================================================= */}
       {activeReportTab === 'ledger' && (
         <div className="space-y-4">
-          <div className="bg-white border border-amber-300/60 rounded-2xl p-4 shadow-xs flex flex-wrap items-center justify-between gap-3 text-xs">
-            <div className="flex items-center gap-2">
-              <span className="font-bold text-slate-700">Ledger Book:</span>
-              <div className="flex items-center rounded-xl bg-slate-100 p-0.5 border border-slate-300">
-                <button
-                  type="button"
-                  onClick={() => setLedgerType('Cash')}
-                  className={`px-3 py-1 rounded-lg font-bold transition-colors cursor-pointer ${
-                    ledgerType === 'Cash' ? 'bg-amber-400 text-slate-950 shadow-2xs' : 'text-slate-600'
-                  }`}
+          <div className="bg-white border border-amber-300/60 rounded-2xl p-4 shadow-xs space-y-3 text-xs">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-slate-700">Ledger Book:</span>
+                <div className="flex items-center rounded-xl bg-slate-100 p-0.5 border border-slate-300">
+                  <button
+                    type="button"
+                    onClick={() => setLedgerType('Cash')}
+                    className={`px-3 py-1 rounded-lg font-bold transition-colors cursor-pointer ${
+                      ledgerType === 'Cash' ? 'bg-amber-400 text-slate-950 shadow-2xs' : 'text-slate-600'
+                    }`}
+                  >
+                    Cash Ledger
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLedgerType('Bank')}
+                    className={`px-3 py-1 rounded-lg font-bold transition-colors cursor-pointer ${
+                      ledgerType === 'Bank' ? 'bg-amber-400 text-slate-950 shadow-2xs' : 'text-slate-600'
+                    }`}
+                  >
+                    Bank Ledger
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-slate-700">Mohalla Filter:</span>
+                <select
+                  value={ledgerMohalla}
+                  onChange={(e) => setLedgerMohalla(e.target.value)}
+                  className="px-3 py-1.5 rounded-xl border border-slate-300 font-semibold cursor-pointer"
                 >
-                  Cash Ledger
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setLedgerType('Bank')}
-                  className={`px-3 py-1 rounded-lg font-bold transition-colors cursor-pointer ${
-                    ledgerType === 'Bank' ? 'bg-amber-400 text-slate-950 shadow-2xs' : 'text-slate-600'
-                  }`}
-                >
-                  Bank Ledger
-                </button>
+                  <option value="ALL">All Mohallas</option>
+                  {distinctMohallas.map(m => (
+                    <option key={m} value={m}>{m}</option>
+                  ))}
+                </select>
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              <span className="font-bold text-slate-700">Mohalla Filter:</span>
-              <select
-                value={ledgerMohalla}
-                onChange={(e) => setLedgerMohalla(e.target.value)}
-                className="px-3 py-1.5 rounded-xl border border-slate-300 font-semibold cursor-pointer"
-              >
-                <option value="ALL">All Mohallas</option>
-                {distinctMohallas.map(m => (
-                  <option key={m} value={m}>{m}</option>
-                ))}
-              </select>
-            </div>
+            <DateFilterBar
+              value={ledgerDateFilter}
+              onChange={setLedgerDateFilter}
+              availableDates={receipts.map(r => r.date)}
+              title="Ledger Period"
+              compact
+            />
           </div>
 
           <div className="bg-white border border-amber-300/60 rounded-2xl p-5 shadow-xs space-y-4">
@@ -898,17 +902,25 @@ export const FaizReportsSuiteSubpage: React.FC<Props> = ({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {ledgerEntries.map((row) => (
-                    <tr key={row.id} className="hover:bg-slate-50">
-                      <td className="py-2 px-3 font-mono text-slate-600">{row.date}</td>
-                      <td className="py-2 px-3 font-mono font-bold text-slate-900">{row.voucherNo}</td>
-                      <td className="py-2 px-3 text-slate-800 font-medium">{row.particulars}</td>
-                      <td className="py-2 px-3 text-right text-slate-400">-</td>
-                      <td className="py-2 px-3 text-right font-bold text-emerald-700">{fmtINR(row.credit)}</td>
-                      <td className="py-2 px-3 text-right font-black text-slate-900">{fmtINR(row.balance)}</td>
-                      <td className="py-2 px-3 font-mono text-slate-600 text-[11px]">{row.user}</td>
+                  {ledgerEntries.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="py-8 text-center text-slate-400 italic">
+                        No Niyaz ledger transactions match the selected filters.
+                      </td>
                     </tr>
-                  ))}
+                  ) : (
+                    ledgerEntries.map((row) => (
+                      <tr key={row.id} className="hover:bg-slate-50">
+                        <td className="py-2 px-3 font-mono text-slate-600">{row.date}</td>
+                        <td className="py-2 px-3 font-mono font-bold text-slate-900">{row.voucherNo}</td>
+                        <td className="py-2 px-3 text-slate-800 font-medium">{row.particulars}</td>
+                        <td className="py-2 px-3 text-right text-slate-400">-</td>
+                        <td className="py-2 px-3 text-right font-bold text-emerald-700">{fmtINR(row.credit)}</td>
+                        <td className="py-2 px-3 text-right font-black text-slate-900">{fmtINR(row.balance)}</td>
+                        <td className="py-2 px-3 font-mono text-slate-600 text-[11px]">{row.user}</td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>

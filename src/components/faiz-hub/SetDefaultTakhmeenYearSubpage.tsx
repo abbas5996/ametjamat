@@ -74,7 +74,7 @@ export const SetDefaultTakhmeenYearSubpage: React.FC<Props> = ({
               Set Default Takhmeen Year
             </h2>
             <p className="text-xs text-slate-600 mt-0.5">
-              Designate the active fiscal cycle across all FMB Takhmeen forms, pledge ledgers, and receipts [cite: 25]
+              Designate the active fiscal cycle across all FMB Takhmeen forms, pledge ledgers, and receipts
             </p>
           </div>
         </div>
@@ -150,7 +150,7 @@ export const SetDefaultTakhmeenYearSubpage: React.FC<Props> = ({
               />
               <label htmlFor="isDefaultYear" className="cursor-pointer select-none">
                 <span className="text-xs font-bold text-slate-900 block">
-                  Set As Default Takhmeen Year [cite: 25]
+                  Set As Default Takhmeen Year
                 </span>
                 <span className="text-[11px] text-slate-600 block mt-0.5">
                   When enabled, this cycle is locked as the universal baseline for all new pledges, automatic installment calculation, and daily counter collection receipts.

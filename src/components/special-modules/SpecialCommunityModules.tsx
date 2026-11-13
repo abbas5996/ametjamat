@@ -1,31 +1,14 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Plane,
   Landmark,
-  CalendarCheck,
-  MessageSquare,
   Sparkles,
-  MapPin,
   Calendar,
-  Users,
-  CheckCircle2,
-  Clock,
   Plus,
-  Search,
-  Filter,
-  DollarSign,
   Printer,
   ShieldCheck,
-  Send,
-  AlertCircle,
   X,
-  CreditCard,
-  Building,
-  UserCheck,
-  Phone,
-  FileText,
-  BadgeAlert,
-  ChevronRight,
+  AlertTriangle,
 } from 'lucide-react';
 import {
   SafarCity,
@@ -37,45 +20,26 @@ import {
   HajExpenseHead,
   HajExpenseEntry,
   MazarRegistration,
-  AppointmentSlot,
-  AppointmentBooking,
-  AppointmentPurpose,
-  WhatsAppMessageTemplate,
-  WhatsAppDispatchLog,
   getSafarCities,
   saveSafarCities,
   getSafarEvents,
   saveSafarEvents,
   getSafarMasool,
-  saveSafarMasool,
   getSafarTakhmeen,
   saveSafarTakhmeen,
   getZiyafatSlots,
   saveZiyafatSlots,
   getHajPilgrims,
-  saveHajPilgrims,
   getHajExpenseHeads,
-  saveHajExpenseHeads,
   getHajExpenseEntries,
-  saveHajExpenseEntries,
   getMazarRegistrations,
-  saveMazarRegistrations,
-  getAppointmentPurposes,
-  saveAppointmentPurposes,
-  getAppointmentSlots,
-  saveAppointmentSlots,
-  getAppointmentBookings,
-  saveAppointmentBookings,
-  getWhatsAppTemplates,
-  saveWhatsAppTemplates,
-  getWhatsAppLogs,
-  saveWhatsAppLogs,
   appendSafarAuditLog,
 } from '../../utils/part4Management';
 import { UserProfile, FinancialYear } from '../../types';
 
 interface SpecialCommunityModulesProps {
   currentUser: UserProfile;
+  categoryId?: 'safar-mubarak' | 'haj-mazar';
   activeSubItemId: string;
   subItemLabel: string;
   financialYear: FinancialYear;
@@ -85,79 +49,103 @@ interface SpecialCommunityModulesProps {
   canDelete?: boolean;
 }
 
+type SafarSubTab = 'dashboard' | 'cities' | 'events' | 'masool' | 'takhmeen' | 'dues' | 'ziyafat';
+type HajSubTab = 'haj-entries' | 'haj-expenses' | 'haj-ledger' | 'mazar-reg' | 'mazar-tracking';
+
+const resolveSafarTab = (subItemId: string): SafarSubTab => {
+  switch (subItemId) {
+    case 'safar-cities':
+      return 'cities';
+    case 'safar-events':
+      return 'events';
+    case 'safar-masool':
+      return 'masool';
+    case 'safar-takhmeen':
+      return 'takhmeen';
+    case 'safar-dues':
+      return 'dues';
+    case 'ziyafat-qadambosi':
+      return 'ziyafat';
+    default:
+      return 'dashboard';
+  }
+};
+
+const resolveHajTab = (subItemId: string): HajSubTab => {
+  switch (subItemId) {
+    case 'haj-expenses':
+      return 'haj-expenses';
+    case 'haj-ledger':
+      return 'haj-ledger';
+    case 'mazar-registration':
+      return 'mazar-reg';
+    case 'mazar-tracking':
+      return 'mazar-tracking';
+    default:
+      return 'haj-entries';
+  }
+};
+
 export const SpecialCommunityModules: React.FC<SpecialCommunityModulesProps> = ({
   currentUser,
+  categoryId,
   activeSubItemId,
-  financialYear,
   showToast,
   canAdd = true,
-  canEdit = true,
-  canDelete = true,
 }) => {
-  // Navigation: 'safar', 'haj-mazar', 'appointments', 'messaging'
-  const [activeSpecialSection, setActiveSpecialSection] = useState<'safar' | 'haj-mazar' | 'appointments' | 'messaging'>(() => {
-    if (activeSubItemId.includes('haj') || activeSubItemId.includes('mazar')) return 'haj-mazar';
-    if (activeSubItemId.includes('appointment')) return 'appointments';
-    if (activeSubItemId.includes('whatsapp') || activeSubItemId.includes('message')) return 'messaging';
+  const resolveSection = (cat?: string, subId?: string): 'safar' | 'haj-mazar' => {
+    if (cat === 'haj-mazar' || subId?.includes('haj') || subId?.includes('mazar')) return 'haj-mazar';
     return 'safar';
-  });
+  };
+
+  const [activeSpecialSection, setActiveSpecialSection] = useState<'safar' | 'haj-mazar'>(() =>
+    resolveSection(categoryId, activeSubItemId)
+  );
 
   // Sub-tabs within Safar
-  const [safarSubTab, setSafarSubTab] = useState<'dashboard' | 'cities' | 'events' | 'masool' | 'takhmeen' | 'dues' | 'ziyafat'>('dashboard');
+  const [safarSubTab, setSafarSubTab] = useState<SafarSubTab>(() => resolveSafarTab(activeSubItemId));
 
   // Sub-tabs within Haj & Mazar
-  const [hajSubTab, setHajSubTab] = useState<'haj-entries' | 'haj-expenses' | 'haj-ledger' | 'mazar-reg' | 'mazar-tracking'>('haj-entries');
+  const [hajSubTab, setHajSubTab] = useState<HajSubTab>(() => resolveHajTab(activeSubItemId));
 
-  // Sub-tabs within Appointments
-  const [aptSubTab, setAptSubTab] = useState<'slots' | 'booking' | 'blocking' | 'purposes'>('slots');
+  useEffect(() => {
+    const nextSection = resolveSection(categoryId, activeSubItemId);
+    setActiveSpecialSection(nextSection);
+    if (nextSection === 'safar') {
+      setSafarSubTab(resolveSafarTab(activeSubItemId));
+    } else {
+      setHajSubTab(resolveHajTab(activeSubItemId));
+    }
+  }, [categoryId, activeSubItemId]);
 
   // State Repositories
   const [safarCities, setSafarCities] = useState<SafarCity[]>(getSafarCities);
   const [safarEvents, setSafarEvents] = useState<SafarEvent[]>(getSafarEvents);
-  const [safarMasool, setSafarMasool] = useState<SafarMasool[]>(getSafarMasool);
+  const [safarMasool] = useState<SafarMasool[]>(getSafarMasool);
   const [safarTakhmeen, setSafarTakhmeen] = useState<SafarTakhmeen[]>(getSafarTakhmeen);
   const [ziyafatSlots, setZiyafatSlots] = useState<ZiyafatSlot[]>(getZiyafatSlots);
 
-  const [hajPilgrims, setHajPilgrims] = useState<HajPilgrim[]>(getHajPilgrims);
-  const [hajExpenseHeads, setHajExpenseHeads] = useState<HajExpenseHead[]>(getHajExpenseHeads);
-  const [hajExpenseEntries, setHajExpenseEntries] = useState<HajExpenseEntry[]>(getHajExpenseEntries);
-  const [mazarRegs, setMazarRegs] = useState<MazarRegistration[]>(getMazarRegistrations);
+  const [hajPilgrims] = useState<HajPilgrim[]>(getHajPilgrims);
+  const [hajExpenseHeads] = useState<HajExpenseHead[]>(getHajExpenseHeads);
+  const [hajExpenseEntries] = useState<HajExpenseEntry[]>(getHajExpenseEntries);
+  const [mazarRegs] = useState<MazarRegistration[]>(getMazarRegistrations);
 
-  const [appointmentPurposes, setAppointmentPurposes] = useState<AppointmentPurpose[]>(getAppointmentPurposes);
-  const [appointmentSlots, setAppointmentSlots] = useState<AppointmentSlot[]>(getAppointmentSlots);
-  const [appointmentBookings, setAppointmentBookings] = useState<AppointmentBooking[]>(getAppointmentBookings);
-
-  const [whatsappTemplates, setWhatsappTemplates] = useState<WhatsAppMessageTemplate[]>(getWhatsAppTemplates);
-  const [whatsappLogs, setWhatsappLogs] = useState<WhatsAppDispatchLog[]>(getWhatsAppLogs);
-
-  // Search
-  const [searchQuery, setSearchQuery] = useState('');
-
-  // Modals
+  // Modals & Inline Validation
   const [showCityModal, setShowCityModal] = useState(false);
   const [showEventModal, setShowEventModal] = useState(false);
-  const [showMasoolModal, setShowMasoolModal] = useState(false);
   const [showTakhmeenModal, setShowTakhmeenModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showZiyafatModal, setShowZiyafatModal] = useState(false);
-  const [showPilgrimModal, setShowPilgrimModal] = useState(false);
-  const [showHajExpModal, setShowHajExpModal] = useState(false);
-  const [showMazarModal, setShowMazarModal] = useState(false);
-  const [showSlotModal, setShowSlotModal] = useState(false);
-  const [showBookingModal, setShowBookingModal] = useState(false);
-  const [showBlockModal, setShowBlockModal] = useState(false);
-  const [showPurposeModal, setShowPurposeModal] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setFormError(null);
+  }, [showCityModal, showEventModal, showTakhmeenModal, showPaymentModal, showZiyafatModal]);
 
   // Selected for Payment
   const [selectedTakhmeenForPay, setSelectedTakhmeenForPay] = useState<SafarTakhmeen | null>(null);
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentMode, setPaymentMode] = useState<'Cash' | 'UPI' | 'Bank Transfer' | 'Cheque'>('UPI');
-
-  // WhatsApp Composer
-  const [selectedTemplateId, setSelectedTemplateId] = useState(whatsappTemplates[0]?.id || '');
-  const [customMsgText, setCustomMsgText] = useState(whatsappTemplates[0]?.messageBody || '');
-  const [targetAudience, setTargetAudience] = useState<'All' | 'Safar Defaulters' | 'FMB Defaulters'>('All');
-  const [isDispatching, setIsDispatching] = useState(false);
 
   // Form States
   const [cityForm, setCityForm] = useState({
@@ -180,15 +168,6 @@ export const SpecialCommunityModules: React.FC<SpecialCommunityModulesProps> = (
     masoolName: '',
   });
 
-  const [masoolForm, setMasoolForm] = useState({
-    name: '',
-    itsNumber: '',
-    mobile: '',
-    department: 'Security & Protocol',
-    cityId: safarCities[0]?.id || '',
-    assignedDuty: '',
-  });
-
   const [takhmeenForm, setTakhmeenForm] = useState({
     itsNumber: '',
     hofName: '',
@@ -208,29 +187,6 @@ export const SpecialCommunityModules: React.FC<SpecialCommunityModulesProps> = (
     remarks: '',
   });
 
-  const [pilgrimForm, setPilgrimForm] = useState({
-    itsNumber: '',
-    fullName: '',
-    age: '45',
-    gender: 'Male' as 'Male' | 'Female',
-    mohallah: 'Mohallah Saifee',
-    mobile: '',
-    passportNumber: '',
-    travelBatch: 'Direct Medina Batch A',
-    packageCost: '450000',
-  });
-
-  const [bookingForm, setBookingForm] = useState({
-    itsNumber: '',
-    personName: '',
-    mobile: '',
-    officialRole: 'Janab Aamil Saheb',
-    appointmentDate: '2026-10-30',
-    appointmentTime: '10:00 AM',
-    purposeId: appointmentPurposes[0]?.id || '',
-    notes: '',
-  });
-
   // Calculate Safar Metrics
   const safarTotalPledged = useMemo(() => {
     return safarTakhmeen.reduce((sum, t) => sum + t.pledgedAmount, 0);
@@ -242,11 +198,28 @@ export const SpecialCommunityModules: React.FC<SpecialCommunityModulesProps> = (
 
   const safarTotalDue = safarTotalPledged - safarTotalCollected;
 
+  const hajFinancialSummary = useMemo(() => {
+    const totalReceipts = hajPilgrims.reduce((sum, p) => sum + p.paidAmount, 0);
+    const totalPackageValue = hajPilgrims.reduce((sum, p) => sum + p.packageCost, 0);
+    const totalOutstanding = hajPilgrims.reduce((sum, p) => sum + p.balanceDue, 0);
+    const totalDisbursements = hajExpenseEntries.reduce((sum, e) => sum + e.amount, 0);
+    const totalAllocatedBudget = hajExpenseHeads.reduce((sum, h) => sum + h.allocatedBudget, 0);
+    const netSurplus = totalReceipts - totalDisbursements;
+    return {
+      totalReceipts,
+      totalPackageValue,
+      totalOutstanding,
+      totalDisbursements,
+      totalAllocatedBudget,
+      netSurplus,
+    };
+  }, [hajPilgrims, hajExpenseEntries, hajExpenseHeads]);
+
   // Handlers
   const handleSaveCity = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!cityForm.cityName || !cityForm.venueName) {
-      alert('Please fill in City and Venue names.');
+    if (!cityForm.cityName.trim() || !cityForm.venueName.trim()) {
+      setFormError('Please fill in both City Name and Venue Name.');
       return;
     }
     const newCity: SafarCity = {
@@ -269,7 +242,10 @@ export const SpecialCommunityModules: React.FC<SpecialCommunityModulesProps> = (
 
   const handleSaveEvent = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!eventForm.title) return;
+    if (!eventForm.title.trim()) {
+      setFormError('Please enter an Event Title.');
+      return;
+    }
     const city = safarCities.find((c) => c.id === eventForm.cityId);
     const newEvent: SafarEvent = {
       id: `SEV-${Date.now()}`,
@@ -295,7 +271,10 @@ export const SpecialCommunityModules: React.FC<SpecialCommunityModulesProps> = (
   const handleSaveTakhmeen = (e: React.FormEvent) => {
     e.preventDefault();
     const amt = parseFloat(takhmeenForm.pledgedAmount);
-    if (!takhmeenForm.hofName || !takhmeenForm.itsNumber || isNaN(amt)) return;
+    if (!takhmeenForm.hofName.trim() || !takhmeenForm.itsNumber.trim() || isNaN(amt) || amt <= 0) {
+      setFormError('Please enter HOF Name, ITS Number, and a valid positive Pledged Amount.');
+      return;
+    }
     const newTak: SafarTakhmeen = {
       id: `STK-${Date.now()}`,
       itsNumber: takhmeenForm.itsNumber,
@@ -320,7 +299,7 @@ export const SpecialCommunityModules: React.FC<SpecialCommunityModulesProps> = (
     if (!selectedTakhmeenForPay) return;
     const amt = parseFloat(paymentAmount);
     if (isNaN(amt) || amt <= 0) {
-      alert('Please enter a valid payment amount.');
+      setFormError('Please enter a valid positive payment amount.');
       return;
     }
     const updated = safarTakhmeen.map((t) => {
@@ -348,7 +327,10 @@ export const SpecialCommunityModules: React.FC<SpecialCommunityModulesProps> = (
 
   const handleSaveZiyafatSlot = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!ziyafatForm.familyName || !ziyafatForm.itsNumber) return;
+    if (!ziyafatForm.familyName.trim() || !ziyafatForm.itsNumber.trim()) {
+      setFormError('Please enter both Family Name and 8-digit ITS Number.');
+      return;
+    }
     const tokenNo = `TKN-${String(ziyafatSlots.length + 1).padStart(3, '0')}`;
     const newSlot: ZiyafatSlot = {
       id: `ZS-${Date.now()}`,
@@ -371,92 +353,19 @@ export const SpecialCommunityModules: React.FC<SpecialCommunityModulesProps> = (
     showToast(`Token ${tokenNo} issued for ${newSlot.familyName}.`);
   };
 
-  const handleSaveBooking = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!bookingForm.personName || !bookingForm.itsNumber) return;
-    const purpose = appointmentPurposes.find((p) => p.id === bookingForm.purposeId);
-    const newBooking: AppointmentBooking = {
-      id: `BK-${Date.now()}`,
-      bookingCode: `APT-1447-${String(appointmentBookings.length + 1).padStart(3, '0')}`,
-      slotId: `SLOT-${Date.now()}`,
-      itsNumber: bookingForm.itsNumber,
-      personName: bookingForm.personName,
-      mobile: bookingForm.mobile,
-      officialRole: bookingForm.officialRole,
-      appointmentDate: bookingForm.appointmentDate,
-      appointmentTime: bookingForm.appointmentTime,
-      purposeId: bookingForm.purposeId,
-      purposeName: purpose ? purpose.title : 'General Consultation',
-      status: 'Confirmed',
-      notes: bookingForm.notes,
-    };
-    const updated = [newBooking, ...appointmentBookings];
-    setAppointmentBookings(updated);
-    saveAppointmentBookings(updated);
-    setShowBookingModal(false);
-    showToast(`Appointment booked successfully! Ref: ${newBooking.bookingCode}`);
-  };
-
-  const handleDispatchWhatsApp = () => {
-    setIsDispatching(true);
-    setTimeout(() => {
-      const template = whatsappTemplates.find((t) => t.id === selectedTemplateId);
-      const recipientCount = targetAudience === 'All' ? 420 : 68;
-      const newLog: WhatsAppDispatchLog = {
-        id: `WLOG-${Date.now()}`,
-        recipientName: `${targetAudience} Mumineen (${recipientCount} recipients)`,
-        mobile: 'Broadcast Gateway',
-        templateTitle: template ? template.title : 'Custom Broadcast',
-        messagePreview: customMsgText.substring(0, 90) + '...',
-        dispatchedAt: new Date().toISOString().replace('T', ' ').substring(0, 16),
-        status: 'Delivered',
-        triggeredBy: currentUser.username,
-      };
-      const updated = [newLog, ...whatsappLogs];
-      setWhatsappLogs(updated);
-      saveWhatsAppLogs(updated);
-      setIsDispatching(false);
-      showToast(`WhatsApp Broadcast dispatched to ${recipientCount} recipients successfully.`);
-    }, 800);
-  };
-
   return (
     <div className="space-y-6">
-      {/* Top 4 Special Modules Switcher */}
-      <div className="bg-white border border-[#D97706]/30 rounded-xl p-2 shadow-xs flex flex-wrap gap-2 text-xs font-semibold">
-        {[
-          { id: 'safar', label: 'Huzurala Safar Mubarak Management', icon: Plane, color: 'text-amber-600' },
-          { id: 'haj-mazar', label: 'Haj & Mazar Tracking', icon: Landmark, color: 'text-emerald-600' },
-          { id: 'appointments', label: 'Appointment System', icon: CalendarCheck, color: 'text-blue-600' },
-          { id: 'messaging', label: 'WhatsApp Reminder Dispatch Service', icon: MessageSquare, color: 'text-purple-600' },
-        ].map((sec) => {
-          const Icon = sec.icon;
-          const isSelected = activeSpecialSection === sec.id;
-          return (
-            <button
-              key={sec.id}
-              type="button"
-              onClick={() => setActiveSpecialSection(sec.id as any)}
-              className={`inline-flex items-center space-x-2 px-3.5 py-2.5 rounded-lg transition-all cursor-pointer ${
-                isSelected
-                  ? 'bg-[#EAB308] text-[#0F172A] font-black shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-              }`}
-            >
-              <Icon className={`w-4 h-4 ${isSelected ? 'text-[#0F172A]' : sec.color}`} />
-              <span>{sec.label}</span>
-            </button>
-          );
-        })}
-      </div>
-
       {/* ========================================================================= */}
       {/* 1. HUZURALA SAFAR MUBARAK MODULE */}
       {/* ========================================================================= */}
       {activeSpecialSection === 'safar' && (
         <div className="space-y-6">
           {/* Sub Navigation Bar for Safar */}
-          <div className="bg-slate-100/80 p-1.5 rounded-xl flex flex-wrap gap-1 text-xs font-semibold border border-slate-200">
+          <div className="bg-white border border-amber-300/50 p-2 rounded-xl flex flex-wrap items-center gap-1.5 text-xs font-semibold shadow-2xs">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-amber-800 font-black uppercase tracking-wider text-[11px] mr-1">
+              <Plane className="w-4 h-4 text-amber-600" />
+              <span>Huzurala Safar Mubarak:</span>
+            </span>
             {[
               { id: 'dashboard', label: 'Safar Dashboard' },
               { id: 'cities', label: 'Cities & Venues' },
@@ -513,7 +422,7 @@ export const SpecialCommunityModules: React.FC<SpecialCommunityModulesProps> = (
                   <span className="text-xs font-bold text-slate-500 uppercase">Total Collected</span>
                   <p className="text-2xl font-black text-emerald-700 mt-1">₹{safarTotalCollected.toLocaleString('en-IN')}</p>
                   <p className="text-xs text-emerald-600 font-semibold mt-1">
-                    {Math.round((safarTotalCollected / safarTotalPledged) * 100)}% realization
+                    {safarTotalPledged > 0 ? Math.round((safarTotalCollected / safarTotalPledged) * 100) : 0}% realization
                   </p>
                 </div>
 
@@ -864,7 +773,11 @@ export const SpecialCommunityModules: React.FC<SpecialCommunityModulesProps> = (
       {/* ========================================================================= */}
       {activeSpecialSection === 'haj-mazar' && (
         <div className="space-y-6">
-          <div className="bg-slate-100/80 p-1.5 rounded-xl flex flex-wrap gap-1 text-xs font-semibold border border-slate-200">
+          <div className="bg-white border border-emerald-300/60 p-2 rounded-xl flex flex-wrap items-center gap-1.5 text-xs font-semibold shadow-2xs">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-emerald-800 font-black uppercase tracking-wider text-[11px] mr-1">
+              <Landmark className="w-4 h-4 text-emerald-600" />
+              <span>Haj &amp; Mazar:</span>
+            </span>
             {[
               { id: 'haj-entries', label: 'Haj Pilgrim Registrations' },
               { id: 'haj-expenses', label: 'Haj Expense Heads' },
@@ -1019,333 +932,51 @@ export const SpecialCommunityModules: React.FC<SpecialCommunityModulesProps> = (
 
           {/* HAJ LEDGER */}
           {hajSubTab === 'haj-ledger' && (
-            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs space-y-3">
-              <h3 className="text-base font-bold text-slate-900">Haj Financial Reconciliation Ledger</h3>
-              <p className="text-xs text-slate-500">Consolidated collections vs disbursements for current Maktab 52 batch</p>
-              <div className="p-4 bg-slate-50 rounded-xl flex justify-between items-center text-xs">
-                <div>
-                  <span className="text-slate-500">Total Pilgrim Receipts:</span>
-                  <p className="text-lg font-black text-emerald-700">₹12,00,000</p>
-                </div>
-                <div>
-                  <span className="text-slate-500">Total Disbursements:</span>
-                  <p className="text-lg font-black text-rose-700">₹8,50,000</p>
-                </div>
-                <div>
-                  <span className="text-slate-500">Net Surplus in Escrow:</span>
-                  <p className="text-lg font-black text-slate-900">₹3,50,000</p>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* 3. APPOINTMENT SYSTEM */}
-      {/* ========================================================================= */}
-      {activeSpecialSection === 'appointments' && (
-        <div className="space-y-6">
-          <div className="bg-slate-100/80 p-1.5 rounded-xl flex flex-wrap gap-1 text-xs font-semibold border border-slate-200">
-            {[
-              { id: 'slots', label: 'Slot Lists & Assigning' },
-              { id: 'booking', label: 'Book Appointment' },
-              { id: 'blocking', label: 'Block Slots' },
-              { id: 'purposes', label: 'Purpose Management' },
-            ].map((sub) => (
-              <button
-                key={sub.id}
-                type="button"
-                onClick={() => setAptSubTab(sub.id as any)}
-                className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-                  aptSubTab === sub.id
-                    ? 'bg-white text-blue-900 font-bold shadow-xs border border-blue-200'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                {sub.label}
-              </button>
-            ))}
-          </div>
-
-          {/* SLOTS & ASSIGNING */}
-          {aptSubTab === 'slots' && (
             <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
-                <div>
-                  <h3 className="text-base font-bold text-slate-900">Appointment Slots & Capacity Schedule</h3>
-                  <p className="text-xs text-slate-500">Official interview and consultation slots with Janab Amil Saheb & leaders</p>
-                </div>
-                {canAdd && (
-                  <button
-                    type="button"
-                    onClick={() => setShowBookingModal(true)}
-                    className="inline-flex items-center space-x-1.5 px-3 py-2 text-xs font-black text-[#0F172A] bg-[#EAB308] hover:bg-[#D4AF37] rounded-lg transition-all shadow-xs cursor-pointer shrink-0"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>Book New Appointment</span>
-                  </button>
-                )}
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {appointmentSlots.map((slot) => (
-                  <div
-                    key={slot.id}
-                    className={`p-3.5 rounded-xl border text-xs space-y-1.5 ${
-                      slot.isBlocked
-                        ? 'bg-rose-50 border-rose-200'
-                        : 'bg-slate-50 border-slate-200'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-slate-900">{slot.officialRole}</span>
-                      <span
-                        className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                          slot.isBlocked
-                            ? 'bg-rose-200 text-rose-900'
-                            : 'bg-emerald-100 text-emerald-800'
-                        }`}
-                      >
-                        {slot.isBlocked ? 'Blocked' : 'Available'}
-                      </span>
-                    </div>
-                    <p className="text-slate-600 font-mono">
-                      {slot.slotDate} • {slot.startTime} – {slot.endTime}
-                    </p>
-                    {slot.isBlocked ? (
-                      <p className="text-[10px] text-rose-700 italic">{slot.blockReason}</p>
-                    ) : (
-                      <p className="text-[11px] text-slate-500">
-                        Booked: {slot.bookedCount} / {slot.capacity}
-                      </p>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* ACTIVE BOOKINGS LIST */}
-          {aptSubTab === 'booking' && (
-            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
-                <div>
-                  <h3 className="text-base font-bold text-slate-900">Confirmed Appointments Registry</h3>
-                  <p className="text-xs text-slate-500">Scheduled interviews and consultations with queue codes</p>
-                </div>
-                {canAdd && (
-                  <button
-                    type="button"
-                    onClick={() => setShowBookingModal(true)}
-                    className="inline-flex items-center space-x-1.5 px-3 py-2 text-xs font-black text-[#0F172A] bg-[#EAB308] hover:bg-[#D4AF37] rounded-lg transition-all shadow-xs cursor-pointer shrink-0"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>Book Appointment</span>
-                  </button>
-                )}
-              </div>
-
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs border-collapse">
-                  <thead>
-                    <tr className="bg-slate-50 border-y border-slate-200 text-slate-600 font-bold">
-                      <th className="py-2.5 px-3">Code</th>
-                      <th className="py-2.5 px-3">ITS #</th>
-                      <th className="py-2.5 px-3">Mumin Name</th>
-                      <th className="py-2.5 px-3">Official Role</th>
-                      <th className="py-2.5 px-3">Date & Time</th>
-                      <th className="py-2.5 px-3">Purpose</th>
-                      <th className="py-2.5 px-3 text-right">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {appointmentBookings.map((bk) => (
-                      <tr key={bk.id} className="hover:bg-blue-50/30 transition-colors">
-                        <td className="py-2.5 px-3 font-mono font-bold text-blue-900">{bk.bookingCode}</td>
-                        <td className="py-2.5 px-3 font-mono font-bold text-slate-800">{bk.itsNumber}</td>
-                        <td className="py-2.5 px-3 font-bold text-slate-900">{bk.personName}</td>
-                        <td className="py-2.5 px-3 text-slate-700">{bk.officialRole}</td>
-                        <td className="py-2.5 px-3 text-slate-600">{bk.appointmentDate} at {bk.appointmentTime}</td>
-                        <td className="py-2.5 px-3 text-amber-900 font-semibold">{bk.purposeName}</td>
-                        <td className="py-2.5 px-3 text-right">
-                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">
-                            {bk.status}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* BLOCKING SLOTS */}
-          {aptSubTab === 'blocking' && (
-            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs space-y-4">
-              <h3 className="text-base font-bold text-slate-900">Block Appointment Slots (Holidays & Urgent Travel)</h3>
-              <p className="text-xs text-slate-500">Prevent booking during official leave or Janab's out-of-station days</p>
-
-              <div className="p-4 bg-amber-50 rounded-xl border border-amber-200 text-xs space-y-2">
-                <span className="font-bold text-amber-900">Quick Holiday Blocking Rule</span>
-                <p className="text-slate-600">
-                  Select official and range to automatically block all public slots during Miqaat Ohbat or travel.
+              <div>
+                <h3 className="text-base font-bold text-slate-900">Haj Financial Reconciliation Ledger</h3>
+                <p className="text-xs text-slate-500">
+                  Live collections vs expense postings across {hajPilgrims.length} pilgrims and {hajExpenseHeads.length} expense heads
                 </p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const updated = [
-                      ...appointmentSlots,
-                      {
-                        id: `SLOT-${Date.now()}`,
-                        slotDate: '2026-11-01',
-                        startTime: '10:00 AM',
-                        endTime: '01:00 PM',
-                        officialRole: 'Janab Aamil Saheb' as const,
-                        capacity: 1,
-                        bookedCount: 0,
-                        isBlocked: true,
-                        blockReason: 'Official Miqaat Holiday',
-                      },
-                    ];
-                    setAppointmentSlots(updated);
-                    saveAppointmentSlots(updated);
-                    showToast('Slot blocked successfully.');
-                  }}
-                  className="px-3 py-1.5 bg-rose-600 text-white font-bold rounded text-xs cursor-pointer"
-                >
-                  Block Upcoming Miqaat Sunday
-                </button>
               </div>
-            </div>
-          )}
-
-          {/* PURPOSE MANAGEMENT */}
-          {aptSubTab === 'purposes' && (
-            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs space-y-4">
-              <h3 className="text-base font-bold text-slate-900">Consultation Purpose Master</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {appointmentPurposes.map((p) => (
-                  <div key={p.id} className="p-3.5 rounded-xl border border-slate-200 bg-slate-50 space-y-1 text-xs">
-                    <span className="font-bold text-slate-900 text-sm">{p.title}</span>
-                    <p className="text-slate-500 text-[11px]">{p.description}</p>
-                    <div className="pt-2 border-t border-slate-200 flex justify-between text-[10px] text-slate-400">
-                      <span>Duration: {p.typicalDurationMins} Mins</span>
-                      <span>{p.requiresDocuments ? 'Docs Required' : 'No Docs Required'}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* 4. WHATSAPP MESSAGING SERVICE */}
-      {/* ========================================================================= */}
-      {activeSpecialSection === 'messaging' && (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Left: Message Composer */}
-            <div className="lg:col-span-2 bg-white border border-slate-200 rounded-xl p-5 shadow-xs space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                <h3 className="text-base font-bold text-slate-900 flex items-center space-x-2">
-                  <MessageSquare className="w-5 h-5 text-purple-600" />
-                  <span>WhatsApp Community Broadcast Dispatcher</span>
-                </h3>
-                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">
-                  WATI API Live
-                </span>
-              </div>
-
-              <div className="space-y-3 text-xs">
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Select Message Template</label>
-                  <select
-                    value={selectedTemplateId}
-                    onChange={(e) => {
-                      setSelectedTemplateId(e.target.value);
-                      const t = whatsappTemplates.find((x) => x.id === e.target.value);
-                      if (t) setCustomMsgText(t.messageBody);
-                    }}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-semibold focus:ring-2 focus:ring-purple-500"
-                  >
-                    {whatsappTemplates.map((tpl) => (
-                      <option key={tpl.id} value={tpl.id}>
-                        {tpl.title} ({tpl.category})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Target Audience</label>
-                  <select
-                    value={targetAudience}
-                    onChange={(e) => setTargetAudience(e.target.value as any)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-semibold focus:ring-2 focus:ring-purple-500"
-                  >
-                    <option value="All">All Registered Mumineen (420 Contacts)</option>
-                    <option value="Safar Defaulters">Safar Takhmeen Defaulters (68 Contacts)</option>
-                    <option value="FMB Defaulters">FMB / Sabeel Defaulters (94 Contacts)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Message Text Preview / Customizer</label>
-                  <textarea
-                    rows={5}
-                    value={customMsgText}
-                    onChange={(e) => setCustomMsgText(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-sans focus:ring-2 focus:ring-purple-500"
-                  />
-                  <p className="text-[10px] text-slate-400 mt-1">
-                    Variables like [Name], [Amount], [Date] will be replaced dynamically from member master.
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+                <div className="p-4 bg-emerald-50/60 border border-emerald-200 rounded-xl">
+                  <span className="text-slate-600 font-semibold">Total Pilgrim Receipts</span>
+                  <p className="text-lg font-black text-emerald-700 mt-1">
+                    ₹{hajFinancialSummary.totalReceipts.toLocaleString('en-IN')}
                   </p>
+                  <span className="text-[11px] text-slate-500">
+                    of ₹{hajFinancialSummary.totalPackageValue.toLocaleString('en-IN')} total package value
+                  </span>
                 </div>
-
-                <div className="flex justify-end pt-3 border-t border-slate-100">
-                  <button
-                    type="button"
-                    disabled={isDispatching}
-                    onClick={handleDispatchWhatsApp}
-                    className="inline-flex items-center space-x-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-lg transition-all shadow-sm cursor-pointer disabled:opacity-50"
-                  >
-                    <Send className="w-4 h-4" />
-                    <span>{isDispatching ? 'Dispatching...' : 'Dispatch Broadcast Queue'}</span>
-                  </button>
+                <div className="p-4 bg-amber-50/60 border border-amber-200 rounded-xl">
+                  <span className="text-slate-600 font-semibold">Pilgrim Balance Due</span>
+                  <p className="text-lg font-black text-amber-800 mt-1">
+                    ₹{hajFinancialSummary.totalOutstanding.toLocaleString('en-IN')}
+                  </p>
+                  <span className="text-[11px] text-slate-500">Remaining receivable</span>
+                </div>
+                <div className="p-4 bg-rose-50/60 border border-rose-200 rounded-xl">
+                  <span className="text-slate-600 font-semibold">Posted Disbursements</span>
+                  <p className="text-lg font-black text-rose-700 mt-1">
+                    ₹{hajFinancialSummary.totalDisbursements.toLocaleString('en-IN')}
+                  </p>
+                  <span className="text-[11px] text-slate-500">
+                    Allocated head budget: ₹{hajFinancialSummary.totalAllocatedBudget.toLocaleString('en-IN')}
+                  </span>
+                </div>
+                <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
+                  <span className="text-slate-600 font-semibold">Net Escrow Balance</span>
+                  <p className="text-lg font-black text-slate-900 mt-1">
+                    ₹{hajFinancialSummary.netSurplus.toLocaleString('en-IN')}
+                  </p>
+                  <span className="text-[11px] text-slate-500">
+                    {hajExpenseEntries.length} posted expense voucher(s)
+                  </span>
                 </div>
               </div>
             </div>
-
-            {/* Right: Dispatch Audit Trail */}
-            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs space-y-4">
-              <h3 className="text-sm font-bold text-slate-900 flex items-center space-x-2">
-                <Clock className="w-4 h-4 text-purple-600" />
-                <span>Recent WhatsApp Dispatch Logs</span>
-              </h3>
-
-              <div className="space-y-3">
-                {whatsappLogs.map((log) => (
-                  <div key={log.id} className="p-3 rounded-lg border border-slate-100 bg-slate-50 space-y-1 text-xs">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-slate-900">{log.recipientName}</span>
-                      <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-100 text-emerald-800">
-                        {log.status}
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-slate-600 line-clamp-2">{log.messagePreview}</p>
-                    <div className="pt-1 border-t border-slate-200/50 flex justify-between text-[10px] text-slate-400">
-                      <span>{log.dispatchedAt}</span>
-                      <span>By @{log.triggeredBy}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+          )}
         </div>
       )}
 
@@ -1360,6 +991,12 @@ export const SpecialCommunityModules: React.FC<SpecialCommunityModulesProps> = (
               </button>
             </div>
             <form onSubmit={handleSaveCity} className="space-y-3 text-xs">
+              {formError && (
+                <div className="p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 font-semibold flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600" />
+                  <span>{formError}</span>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">City Name</label>
@@ -1442,6 +1079,12 @@ export const SpecialCommunityModules: React.FC<SpecialCommunityModulesProps> = (
               </button>
             </div>
             <form onSubmit={handleSaveTakhmeen} className="space-y-3 text-xs">
+              {formError && (
+                <div className="p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 font-semibold flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600" />
+                  <span>{formError}</span>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">ITS Number</label>
@@ -1520,6 +1163,12 @@ export const SpecialCommunityModules: React.FC<SpecialCommunityModulesProps> = (
             </div>
 
             <form onSubmit={handleProcessSafarPayment} className="space-y-3 text-xs">
+              {formError && (
+                <div className="p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 font-semibold flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600" />
+                  <span>{formError}</span>
+                </div>
+              )}
               <div>
                 <label className="block font-bold text-slate-700 mb-1">Payment Amount (₹)</label>
                 <input
@@ -1559,123 +1208,6 @@ export const SpecialCommunityModules: React.FC<SpecialCommunityModulesProps> = (
         </div>
       )}
 
-      {/* MODAL: BOOK APPOINTMENT */}
-      {showBookingModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-blue-300 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <h3 className="text-base font-bold text-slate-900">Book Official Appointment</h3>
-              <button type="button" onClick={() => setShowBookingModal(false)} className="text-slate-400 hover:text-slate-600 cursor-pointer">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveBooking} className="space-y-3 text-xs">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">ITS Number</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="8-digit ITS"
-                    value={bookingForm.itsNumber}
-                    onChange={(e) => setBookingForm({ ...bookingForm, itsNumber: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-mono font-bold"
-                  />
-                </div>
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Applicant Name</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Full Name"
-                    value={bookingForm.personName}
-                    onChange={(e) => setBookingForm({ ...bookingForm, personName: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Official Role</label>
-                  <select
-                    value={bookingForm.officialRole}
-                    onChange={(e) => setBookingForm({ ...bookingForm, officialRole: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-bold text-slate-900"
-                  >
-                    <option value="Janab Aamil Saheb">Janab Aamil Saheb</option>
-                    <option value="Executive Secretary">Executive Secretary</option>
-                    <option value="Qaza Tribunal">Qaza Tribunal</option>
-                    <option value="FMB Coordinator">FMB Coordinator</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Consultation Purpose</label>
-                  <select
-                    value={bookingForm.purposeId}
-                    onChange={(e) => setBookingForm({ ...bookingForm, purposeId: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs"
-                  >
-                    {appointmentPurposes.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.title}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Appointment Date</label>
-                  <input
-                    type="date"
-                    value={bookingForm.appointmentDate}
-                    onChange={(e) => setBookingForm({ ...bookingForm, appointmentDate: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs"
-                  />
-                </div>
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Time Slot</label>
-                  <select
-                    value={bookingForm.appointmentTime}
-                    onChange={(e) => setBookingForm({ ...bookingForm, appointmentTime: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-mono"
-                  >
-                    <option value="10:00 AM">10:00 AM</option>
-                    <option value="10:30 AM">10:30 AM</option>
-                    <option value="11:00 AM">11:00 AM</option>
-                    <option value="04:00 PM">04:00 PM</option>
-                    <option value="04:30 PM">04:30 PM</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block font-bold text-slate-700 mb-1">Brief Notes / Intention</label>
-                <textarea
-                  rows={2}
-                  placeholder="Context for Janab or Tribunal..."
-                  value={bookingForm.notes}
-                  onChange={(e) => setBookingForm({ ...bookingForm, notes: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs"
-                />
-              </div>
-
-              <div className="flex justify-end space-x-2 pt-3 border-t border-slate-100">
-                <button type="button" onClick={() => setShowBookingModal(false)} className="px-4 py-2 border border-slate-300 rounded-lg cursor-pointer">
-                  Cancel
-                </button>
-                <button type="submit" className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-lg cursor-pointer">
-                  Confirm Booking
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
       {/* MODAL: ISSUE ZIYAFAT TOKEN */}
       {showZiyafatModal && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
@@ -1688,6 +1220,12 @@ export const SpecialCommunityModules: React.FC<SpecialCommunityModulesProps> = (
             </div>
 
             <form onSubmit={handleSaveZiyafatSlot} className="space-y-3 text-xs">
+              {formError && (
+                <div className="p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 font-semibold flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600" />
+                  <span>{formError}</span>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">ITS Number</label>

@@ -170,7 +170,7 @@ export const FaizAuditChequeCancellationSubpage: React.FC<Props> = ({
               Audit Trails, Cancellations & Cheque Management
             </h2>
             <p className="text-xs text-slate-600 mt-0.5">
-              Returned cheque tracking with SMS dispatch, voided receipt logs, and expense cancellation audits [cite: 47, 48, 49, 50]
+              Returned cheque tracking with SMS dispatch, voided receipt logs, and expense cancellation audits
             </p>
           </div>
         </div>
@@ -190,11 +190,11 @@ export const FaizAuditChequeCancellationSubpage: React.FC<Props> = ({
       {/* ── Ribbon Navigation Tabs ── */}
       <div className="bg-white border border-amber-300/60 rounded-xl p-1.5 shadow-xs flex items-center gap-1 overflow-x-auto select-none">
         {[
-          { key: 'bounced-cheques' as AuditTab,     label: '1. Cheque Returned List',      icon: RotateCcw, cite: '[cite: 47, 50]' },
-          { key: 'cancelled-receipts' as AuditTab,  label: '2. Niyaz Cancelled List',       icon: Ban,       cite: '[cite: 48]' },
-          { key: 'cancelled-expenses' as AuditTab,  label: '3. Niyaz Expense Cancelled',    icon: AlertTriangle, cite: '[cite: 49]' },
-          { key: 'cancelled-income' as AuditTab,    label: '4. Cancelled Income Receipts',  icon: FileSpreadsheet, cite: '[cite: 50]' },
-        ].map(({ key, label, icon: Icon, cite }) => (
+          { key: 'bounced-cheques' as AuditTab,     label: '1. Cheque Returned List',      icon: RotateCcw },
+          { key: 'cancelled-receipts' as AuditTab,  label: '2. Niyaz Cancelled List',       icon: Ban },
+          { key: 'cancelled-expenses' as AuditTab,  label: '3. Niyaz Expense Cancelled',    icon: AlertTriangle },
+          { key: 'cancelled-income' as AuditTab,    label: '4. Cancelled Income Receipts',  icon: FileSpreadsheet },
+        ].map(({ key, label, icon: Icon }) => (
           <button
             key={key}
             type="button"
@@ -207,7 +207,6 @@ export const FaizAuditChequeCancellationSubpage: React.FC<Props> = ({
           >
             <Icon className="w-4 h-4 text-amber-900" />
             <span>{label}</span>
-            <span className="text-[10px] text-slate-400 font-mono hidden sm:inline">{cite}</span>
           </button>
         ))}
       </div>

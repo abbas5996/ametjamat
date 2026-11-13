@@ -3,18 +3,14 @@ import {
   FileSpreadsheet,
   Download,
   Printer,
-  Filter,
   Users,
   Utensils,
   Wallet,
   Building2,
   ShieldAlert,
   Search,
-  CheckCircle2,
-  Calendar,
   Layers,
   ArrowRight,
-  MapPin,
   RefreshCw,
 } from 'lucide-react';
 import { ReportType, UserProfile, FinancialYear, Mohallah } from '../../types';
@@ -24,7 +20,14 @@ import {
   exportToCSV,
   exportToExcel,
 } from '../../utils/executiveReports';
-import { appendActivityLog } from '../../utils/rbac';
+import { appendActivityLog, getStoredActivityLogs } from '../../utils/rbac';
+import { getStoredBookings } from '../../utils/hallBooking';
+import {
+  DateFilterState,
+  createDefaultDateFilter,
+  resolveDateRange,
+} from '../../utils/dateFilters';
+import { DateFilterBar } from '../common/DateFilterBar';
 
 interface ReportsHubSubpageProps {
   currentUser: UserProfile;
@@ -44,9 +47,18 @@ export const ReportsHubSubpage: React.FC<ReportsHubSubpageProps> = ({
   // Filter States
   const [mohallahFilter, setMohallahFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [startDate, setStartDate] = useState<string>('');
-  const [endDate, setEndDate] = useState<string>('');
+  const [dateFilter, setDateFilter] = useState<DateFilterState>(() =>
+    createDefaultDateFilter('all')
+  );
   const [tableSearch, setTableSearch] = useState<string>('');
+
+  const availableDates = useMemo(() => {
+    const bookingDates = getStoredBookings().map((b) => b.eventDate);
+    const auditDates = getStoredActivityLogs().map((a) => a.timestamp);
+    return [...bookingDates, ...auditDates];
+  }, []);
+
+  const resolvedRange = useMemo(() => resolveDateRange(dateFilter), [dateFilter]);
 
   // Report Card definitions
   const reportCards: {
@@ -104,10 +116,10 @@ export const ReportsHubSubpage: React.FC<ReportsHubSubpageProps> = ({
     return generateReportDataset(selectedReport, {
       mohallah: mohallahFilter,
       status: statusFilter,
-      startDate: startDate || undefined,
-      endDate: endDate || undefined,
+      startDate: resolvedRange.from || undefined,
+      endDate: resolvedRange.to || undefined,
     });
-  }, [selectedReport, mohallahFilter, statusFilter, startDate, endDate]);
+  }, [selectedReport, mohallahFilter, statusFilter, resolvedRange.from, resolvedRange.to]);
 
   // Client-side text search within compiled table
   const displayedRows = useMemo(() => {
@@ -174,8 +186,7 @@ export const ReportsHubSubpage: React.FC<ReportsHubSubpageProps> = ({
   const handleResetFilters = () => {
     setMohallahFilter('all');
     setStatusFilter('all');
-    setStartDate('');
-    setEndDate('');
+    setDateFilter(createDefaultDateFilter('all'));
     setTableSearch('');
   };
 
@@ -213,7 +224,7 @@ export const ReportsHubSubpage: React.FC<ReportsHubSubpageProps> = ({
             title="Download formatted CSV file"
           >
             <Download className="w-3.5 h-3.5" />
-            <span>📥 Export as CSV</span>
+            <span>Export as CSV</span>
           </button>
 
           <button
@@ -228,7 +239,7 @@ export const ReportsHubSubpage: React.FC<ReportsHubSubpageProps> = ({
             title="Download Excel spreadsheet (.xls)"
           >
             <FileSpreadsheet className="w-3.5 h-3.5" />
-            <span>📊 Export as Excel</span>
+            <span>Export as Excel</span>
           </button>
 
           <button
@@ -238,7 +249,7 @@ export const ReportsHubSubpage: React.FC<ReportsHubSubpageProps> = ({
             title="Print report preview table"
           >
             <Printer className="w-3.5 h-3.5" />
-            <span>🖨️ Print Report</span>
+            <span>Print Report</span>
           </button>
         </div>
       </div>
@@ -364,27 +375,7 @@ export const ReportsHubSubpage: React.FC<ReportsHubSubpageProps> = ({
               </select>
             )}
 
-            {/* Date Range Picker (applicable to Hall bookings, audit logs) */}
-            {['hall-revenue', 'activity-audit'].includes(selectedReport) && (
-              <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs">
-                <span className="text-[11px] text-slate-400">Date:</span>
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="bg-transparent text-slate-800 outline-none text-xs"
-                />
-                <span className="text-slate-300">-</span>
-                <input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  className="bg-transparent text-slate-800 outline-none text-xs"
-                />
-              </div>
-            )}
-
-            {(mohallahFilter !== 'all' || statusFilter !== 'all' || startDate || endDate || tableSearch) && (
+            {(mohallahFilter !== 'all' || statusFilter !== 'all' || dateFilter.mode !== 'all' || tableSearch) && (
               <button
                 type="button"
                 onClick={handleResetFilters}
@@ -396,6 +387,17 @@ export const ReportsHubSubpage: React.FC<ReportsHubSubpageProps> = ({
             )}
           </div>
         </div>
+
+        {/* Date Period Filter (for Hall Revenue & Activity Audit) */}
+        {['hall-revenue', 'activity-audit'].includes(selectedReport) && (
+          <DateFilterBar
+            value={dateFilter}
+            onChange={setDateFilter}
+            availableDates={availableDates}
+            title="Report Period"
+            compact
+          />
+        )}
 
         {/* Live Preview Table */}
         <div className="overflow-x-auto border border-slate-200 rounded-lg max-h-[500px]">

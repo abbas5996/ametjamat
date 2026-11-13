@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Compass,
   CheckCircle2,
@@ -65,9 +65,22 @@ export const UmurFrameworkModule: React.FC<UmurFrameworkModuleProps> = ({
     return 'umur-dashboard';
   });
 
+  useEffect(() => {
+    if (activeSubItemId && activeSubItemId !== 'umur-framework') {
+      setSelectedUmurId(activeSubItemId);
+    } else {
+      setSelectedUmurId('umur-dashboard');
+    }
+  }, [activeSubItemId]);
+
   const [searchQuery, setSearchQuery] = useState('');
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [showVoidVoucherModal, setShowVoidVoucherModal] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setFormError(null);
+  }, [showProjectModal, showVoidVoucherModal]);
 
   // Form States
   const [projectForm, setProjectForm] = useState({
@@ -119,8 +132,8 @@ export const UmurFrameworkModule: React.FC<UmurFrameworkModuleProps> = ({
   const handleSaveProject = (e: React.FormEvent) => {
     e.preventDefault();
     const b = parseFloat(projectForm.budget);
-    if (!projectForm.title || isNaN(b)) {
-      alert('Please fill in Initiative Title and valid Budget.');
+    if (!projectForm.title.trim() || isNaN(b) || b <= 0) {
+      setFormError('Please fill in Initiative Title and a positive Budget amount.');
       return;
     }
     const newPrj: UmurProject = {
@@ -157,8 +170,8 @@ export const UmurFrameworkModule: React.FC<UmurFrameworkModuleProps> = ({
   const handleVoidVoucher = (e: React.FormEvent) => {
     e.preventDefault();
     const amt = parseFloat(voidForm.amount);
-    if (!voidForm.voucherNo || isNaN(amt) || !voidForm.reason) {
-      alert('Please enter Voucher #, Amount, and Cancellation Reason.');
+    if (!voidForm.voucherNo.trim() || isNaN(amt) || amt <= 0 || !voidForm.reason.trim()) {
+      setFormError('Please enter a valid Voucher #, positive Amount, and Cancellation Reason.');
       return;
     }
     const newVoid: CancelledVoucher = {
@@ -269,7 +282,7 @@ export const UmurFrameworkModule: React.FC<UmurFrameworkModuleProps> = ({
                 ₹{totalSpentBudget.toLocaleString('en-IN')}
               </p>
               <p className="text-xs text-emerald-600 font-semibold mt-1">
-                {Math.round((totalSpentBudget / totalAllocatedBudget) * 100)}% budget utilization rate
+                {totalAllocatedBudget > 0 ? Math.round((totalSpentBudget / totalAllocatedBudget) * 100) : 0}% budget utilization rate
               </p>
             </div>
 
@@ -569,6 +582,12 @@ export const UmurFrameworkModule: React.FC<UmurFrameworkModuleProps> = ({
             </div>
 
             <form onSubmit={handleSaveProject} className="space-y-3 text-xs">
+              {formError && (
+                <div className="p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 font-semibold flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600" />
+                  <span>{formError}</span>
+                </div>
+              )}
               <div>
                 <label className="block font-bold text-slate-700 mb-1">Umur Department</label>
                 <select
@@ -705,6 +724,12 @@ export const UmurFrameworkModule: React.FC<UmurFrameworkModuleProps> = ({
             </div>
 
             <form onSubmit={handleVoidVoucher} className="space-y-3 text-xs">
+              {formError && (
+                <div className="p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 font-semibold flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600" />
+                  <span>{formError}</span>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">Voucher # to Void</label>

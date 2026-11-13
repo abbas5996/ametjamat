@@ -15,6 +15,8 @@ import {
   getStoredOpeningBalances,
 } from '../../utils/fmbPart1Data';
 import { UserProfile } from '../../types';
+import { toIsoDate } from '../../utils/dateFilters';
+import { QuickDatePresetsBar } from '../common/DateFilterBar';
 
 const fmtINR = (n: number) => `₹${n.toLocaleString('en-IN')}`;
 
@@ -91,8 +93,11 @@ export const NiyazExpenseEntrySubpage: React.FC<Props> = ({
       if (selectedHead !== 'all' && e.expenseHeadId !== selectedHead) return false;
 
       // 4. Date Range
-      if (startDate && e.date < startDate) return false;
-      if (endDate && e.date > endDate) return false;
+      if (startDate || endDate) {
+        const itemIso = toIsoDate(e.date) || e.date;
+        if (startDate && itemIso < startDate) return false;
+        if (endDate && itemIso > endDate) return false;
+      }
 
       return true;
     });
@@ -217,7 +222,7 @@ export const NiyazExpenseEntrySubpage: React.FC<Props> = ({
               Expense Heads & Niyaz Expense Entry List
             </h2>
             <p className="text-xs text-slate-600 mt-0.5">
-              Comprehensive disbursement registers, transaction mode filters, and bulk printing [cite: 29, 30]
+              Comprehensive disbursement registers, transaction mode filters, and bulk printing
             </p>
           </div>
         </div>
@@ -304,10 +309,9 @@ export const NiyazExpenseEntrySubpage: React.FC<Props> = ({
           <div className="space-y-1">
             <label className="font-bold text-slate-700">From Date</label>
             <input
-              type="text"
+              type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              placeholder="e.g. 1447-02-01"
               className="w-full px-3 py-2 rounded-xl border border-slate-300 font-mono text-slate-900 focus:ring-2 focus:ring-amber-500 outline-none"
             />
           </div>
@@ -316,16 +320,44 @@ export const NiyazExpenseEntrySubpage: React.FC<Props> = ({
           <div className="space-y-1">
             <label className="font-bold text-slate-700">To Date</label>
             <input
-              type="text"
+              type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              placeholder="e.g. 1447-02-29"
               className="w-full px-3 py-2 rounded-xl border border-slate-300 font-mono text-slate-900 focus:ring-2 focus:ring-amber-500 outline-none"
             />
           </div>
         </div>
 
-        {/* Transaction Type Checkboxes [cite: 29, 30] */}
+        {/* Quick Date Presets Bar */}
+        <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
+          <QuickDatePresetsBar
+            fromDate={startDate}
+            toDate={endDate}
+            onSelectRange={(from, to) => {
+              setStartDate(from);
+              setEndDate(to);
+            }}
+            availableDates={entries.map((e) => e.date)}
+          />
+
+          {(startDate || endDate || searchName || selectedHead !== 'all') && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearchName('');
+                setStartDate('');
+                setEndDate('');
+                setSelectedHead('all');
+                setTypeFilters({ Cash: true, Cheque: true, Online: true, 'Standing Order': true });
+              }}
+              className="text-xs font-bold text-amber-800 hover:text-amber-950 hover:underline cursor-pointer"
+            >
+              Reset Filters
+            </button>
+          )}
+        </div>
+
+        {/* Transaction Type Checkboxes */}
         <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center gap-4 text-xs">
           <span className="font-bold text-slate-700">Transaction Type Checkboxes:</span>
           {(['Cash', 'Cheque', 'Online', 'Standing Order'] as ExpenseTransactionType[]).map((t) => (
@@ -339,21 +371,6 @@ export const NiyazExpenseEntrySubpage: React.FC<Props> = ({
               <span className="font-medium text-slate-800">{t}</span>
             </label>
           ))}
-          {(startDate || endDate || searchName || selectedHead !== 'all') && (
-            <button
-              type="button"
-              onClick={() => {
-                setSearchName('');
-                setStartDate('');
-                setEndDate('');
-                setSelectedHead('all');
-                setTypeFilters({ Cash: true, Cheque: true, Online: true, 'Standing Order': true });
-              }}
-              className="ml-auto text-xs font-bold text-amber-800 hover:text-amber-950 hover:underline cursor-pointer"
-            >
-              Reset Filters
-            </button>
-          )}
         </div>
       </div>
 

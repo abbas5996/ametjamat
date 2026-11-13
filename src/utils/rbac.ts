@@ -225,12 +225,28 @@ export const RBAC_DEPARTMENTS: DepartmentDefinition[] = [
     name: 'Community Schemes',
     categoryIcon: 'Layers',
     subModules: [
-      { id: 'scheme-takhmeen-master',        name: 'Takhmeen Master',        description: 'Annual commitment registrations across community welfare schemes.' },
-      { id: 'scheme-payment-entry',          name: 'Payment Entry',          description: 'Counter recovery against pledged scheme amounts with instant receipts.' },
-      { id: 'scheme-category-master',        name: 'Category Master',        description: 'Scheme-specific tiering slabs, baseline figures, and classifications.' },
-      { id: 'scheme-outstanding-report',     name: 'Outstanding Report',     description: 'Overdue scheme commitment balances and recovery tracking.' },
-      { id: 'scheme-ledger-report',          name: 'Ledger Report',          description: 'Comprehensive financial remittance ledger for community schemes.' },
-      { id: 'scheme-cancelled-receipts',     name: 'Cancelled Receipts',     description: 'Audit register of revoked scheme receipt vouchers.' },
+      { id: 'taher-opening-balance',        name: 'Taher: Opening Balance',        description: 'Opening cash and bank balances for Taher Scheme.' },
+      { id: 'taher-make-receipt',           name: 'Taher: Make Receipt',           description: 'Issue Taher Scheme receipts linked to ITS/Sabeel with Trust voucher printing.' },
+      { id: 'taher-ledger-datewise',        name: 'Taher: Ledger & Datewise',      description: 'Datewise ledger grid with export, print, and bulk Trust voucher printing.' },
+      { id: 'taher-cancelled-receipts',     name: 'Taher: Cancelled Receipts',     description: 'Voided and cancelled receipts audit register for Taher Scheme.' },
+      { id: 'mohammedi-opening-balance',    name: 'Mohammedi: Opening Balance',    description: 'Opening cash and bank balances for Mohammedi Scheme.' },
+      { id: 'mohammedi-make-receipt',       name: 'Mohammedi: Make Receipt',       description: 'Issue Mohammedi Scheme receipts linked to ITS/Sabeel with Trust voucher printing.' },
+      { id: 'mohammedi-ledger-datewise',    name: 'Mohammedi: Ledger & Datewise',  description: 'Datewise ledger grid with export, print, and bulk Trust voucher printing.' },
+      { id: 'mohammedi-cancelled-receipts', name: 'Mohammedi: Cancelled Receipts', description: 'Voided and cancelled receipts audit register for Mohammedi Scheme.' },
+      { id: 'husain-dashboard',             name: 'Husain: Dashboard',             description: 'Yearly contributions, pending refunds, member counts, and 15-day maturing radar.' },
+      { id: 'husain-datewise-report',       name: 'Husain: Datewise Report',       description: 'Datewise contribution report with search filters and batch export.' },
+      { id: 'husain-request-manager',       name: 'Husain: Request Manager',       description: 'Approve or reject enrollment, renewal, and withdrawal requests.' },
+      { id: 'husain-ledger-report',         name: 'Husain: Ledger Report',         description: 'Full Husain Scheme financial ledger with solo and bulk Trust printing.' },
+      { id: 'husain-withdrawals',           name: 'Husain: Withdrawals',           description: 'Manage member withdrawals, partial payouts, and pending refunds.' },
+      { id: 'husain-maturing',              name: 'Husain: Maturing Tracking',     description: 'Track maturing contributions, renewals, and payout readiness.' },
+      { id: 'husain-cancelled',             name: 'Husain: Cancelled Receipts',    description: 'Cancelled Husain Scheme receipts log and restoration controls.' },
+      { id: 'husain-hide-account',          name: 'Husain: Hide Account',          description: 'Toggle account visibility and financial masking settings.' },
+      { id: 'scheme-takhmeen-master',       name: 'Takhmeen Master',               description: 'Annual commitment registrations across community welfare schemes.' },
+      { id: 'scheme-payment-entry',         name: 'Payment Entry',                 description: 'Counter recovery against pledged scheme amounts with instant receipts.' },
+      { id: 'scheme-category-master',       name: 'Category Master',               description: 'Scheme-specific tiering slabs, baseline figures, and classifications.' },
+      { id: 'scheme-outstanding-report',    name: 'Outstanding Report',            description: 'Overdue scheme commitment balances and recovery tracking.' },
+      { id: 'scheme-ledger-report',         name: 'Ledger Report',                 description: 'Comprehensive financial remittance ledger for community schemes.' },
+      { id: 'scheme-cancelled-receipts',    name: 'Cancelled Receipts',            description: 'Audit register of revoked scheme receipt vouchers.' },
     ],
   },
   {
@@ -285,6 +301,7 @@ export const RBAC_DEPARTMENTS: DepartmentDefinition[] = [
       { id: 'accounts-general-ledger',       name: 'General Ledger',         description: 'Account-wise posting statements with running debit/credit balances.' },
       { id: 'accounts-trial-balance',        name: 'Trial Balance',          description: 'Mathematical balance verification of debits and credits.' },
       { id: 'accounts-financial-statements', name: 'Financial Statements',   description: 'Balance Sheet and Income & Expenditure statements.' },
+      { id: 'accounts-budget',               name: 'Budget & Variance Control', description: 'Departmental and trust budget allocation, actual spend, and variance tracking.' },
     ],
   },
   {
@@ -313,45 +330,45 @@ export const RBAC_DEPARTMENTS: DepartmentDefinition[] = [
   },
   {
     id: 'services',
-    name: 'Services',
+    name: 'Hall & Facility Booking',
     categoryIcon: 'Calendar',
     subModules: [
       {
-        id: 'hall-booking',
-        name: 'Hall Bookings',
-        description: 'Mawaid halls reservation, jaman slots, and deposit collection.',
+        id: 'hall-facilities',
+        name: 'Facility & Hall Directory',
+        description: 'Mawaid halls directory, venue capacities, and rates.',
       },
       {
-        id: 'ziyarat-tracking',
-        name: 'Ziyarat Tracking (Karbala / Hajj / Umrah / Kalyako)',
-        description: 'Ziyarat convoy schedules, travel clearances, and registration.',
+        id: 'hall-calendar',
+        name: 'Booking Calendar & Slots',
+        description: 'Jaman slots, event bookings, and venue scheduling.',
       },
       {
-        id: 'miqaat-madrasa',
-        name: 'Madrasa & Miqaat Registrations',
-        description: 'Al-Madrasa al-Saifiyah admissions, attendance, and miqaat passes.',
+        id: 'hall-ledger',
+        name: 'Payment & Receipt Ledger',
+        description: 'Hall booking advance deposits and balance settlement receipts.',
       },
     ],
   },
   {
     id: 'payments-receipts',
-    name: 'Payments & Receipts Engine',
+    name: 'Executive Reports & Receipts',
     categoryIcon: 'Receipt',
     subModules: [
       {
+        id: 'financial-summary',
+        name: 'Executive Financial Summary',
+        description: 'Consolidated revenue realization, targets, and outstanding dues.',
+      },
+      {
         id: 'counter-payment',
-        name: 'Counter Payment Entry',
-        description: 'Real-time cash, card, UPI, and bank counter payment collections.',
+        name: 'General Receipt Generator (POS)',
+        description: 'Real-time cash, card, UPI, and bank counter payment receipts.',
       },
       {
-        id: 'receipts-history',
-        name: 'Receipts History & PDF Print',
-        description: 'Query historical receipts, generate print-ready duplicate receipts.',
-      },
-      {
-        id: 'refund-ledger',
-        name: 'Refund / Reversal Ledger',
-        description: 'Payment reversals, cancellations, and official refund approvals.',
+        id: 'reports-hub',
+        name: 'Reports Hub & Data Export',
+        description: 'Filterable institutional exports (CSV, Excel, Print).',
       },
     ],
   },
@@ -615,7 +632,10 @@ export const appendActivityLog = (
 ): ActivityLogEntry[] => {
   const currentLogs = getStoredActivityLogs();
   const now = new Date();
-  const timeString = `${now.toLocaleDateString()} ${now.toLocaleTimeString([], {
+  const isoDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(
+    now.getDate()
+  ).padStart(2, '0')}`;
+  const timeString = `${isoDate} ${now.toLocaleTimeString([], {
     hour: '2-digit',
     minute: '2-digit',
   })}`;

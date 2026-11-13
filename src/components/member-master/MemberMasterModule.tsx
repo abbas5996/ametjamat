@@ -21,7 +21,6 @@ interface MemberMasterModuleProps {
   activeSubItemId: string;
   subItemLabel: string;
   showToast: (msg: string) => void;
-  openAddModalTrigger?: number;
 }
 
 export const MemberMasterModule: React.FC<MemberMasterModuleProps> = ({
@@ -29,7 +28,6 @@ export const MemberMasterModule: React.FC<MemberMasterModuleProps> = ({
   activeSubItemId,
   subItemLabel,
   showToast,
-  openAddModalTrigger,
 }) => {
   // Shared state across the 3 sub-pages, persisted in localStorage
   const [hofs, setHofs] = useState<HeadOfFamily[]>(() => getStoredHofs());
@@ -42,13 +40,6 @@ export const MemberMasterModule: React.FC<MemberMasterModuleProps> = ({
 
   // Deep-link state when jumping to ITS updater with a specific ITS
   const [updaterTargetIts, setUpdaterTargetIts] = useState<string | undefined>(undefined);
-
-  // If header trigger clicked, ensure Directory tab is active
-  useEffect(() => {
-    if (openAddModalTrigger && openAddModalTrigger > 0) {
-      setActiveTab('directory-hof');
-    }
-  }, [openAddModalTrigger]);
 
   // Sync tab whenever sidebar navigation changes
   useEffect(() => {
@@ -146,7 +137,6 @@ export const MemberMasterModule: React.FC<MemberMasterModuleProps> = ({
             canDelete={canDeleteDirectory}
             showToast={showToast}
             onNavigateToUpdater={handleNavigateToUpdater}
-            openAddModalTrigger={openAddModalTrigger}
           />
         ) : (
           <AccessDeniedNotice subpage="Directory & Family HOF" currentUser={currentUser} />

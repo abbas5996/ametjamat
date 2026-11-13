@@ -1,36 +1,27 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   Sliders,
-  Users,
-  UserPlus,
   Trash2,
   Building,
   CreditCard,
-  Bell,
   Calendar,
   Camera,
   History,
-  Lock,
-  KeyRound,
   ShieldCheck,
   CheckCircle2,
   AlertTriangle,
   Plus,
   Search,
   Filter,
-  Download,
   Save,
-  RefreshCw,
   X,
   Upload,
-  Eye,
   FileText,
 } from 'lucide-react';
 import {
   JamaatBankAccount,
   TrustWaqfMasterEntity,
   CashReceiptLimitConfig,
-  NotificationGatewayConfig,
   JamaatProfileDetails,
   ReceiptDateBlockingRule,
   DeleteReceiptPermissionOfficer,
@@ -41,8 +32,6 @@ import {
   saveTrustWaqfMaster,
   getCashReceiptLimits,
   saveCashReceiptLimits,
-  getNotificationGatewayConfig,
-  saveNotificationGatewayConfig,
   getJamaatProfile,
   saveJamaatProfile,
   getReceiptDateBlocking,
@@ -52,14 +41,24 @@ import {
   getSafarAuditLogs,
 } from '../../utils/part4Management';
 import {
-  getStoredUsers,
-  saveStoredUsers,
   getStoredActivityLogs,
   appendActivityLog,
-  createDefaultPermissions,
 } from '../../utils/rbac';
-import { UserProfile, FinancialYear, ManagedUser, ActivityLogEntry } from '../../types';
-import { ChangePasswordPage } from '../ChangePasswordPage';
+import { getStoredHofs } from '../../utils/memberMaster';
+import { isJanabUser } from '../../utils/auth';
+import { UserProfile, FinancialYear, ActivityLogEntry } from '../../types';
+
+const SETTINGS_MASTER_TAB_IDS = new Set([
+  'delete-receipt-perm',
+  'bank-accounts',
+  'trust-waqf',
+  'cash-limits',
+  'jamaat-details',
+  'date-blocking',
+  'bulk-photos',
+  'activity-logs',
+  'safar-logs',
+]);
 
 interface SystemSettingsMasterModuleProps {
   currentUser: UserProfile;
@@ -74,50 +73,50 @@ interface SystemSettingsMasterModuleProps {
 export const SystemSettingsMasterModule: React.FC<SystemSettingsMasterModuleProps> = ({
   currentUser,
   activeSubItemId,
-  financialYear,
+  financialYear: _financialYear,
   showToast,
   canAdd = true,
-  canEdit = true,
-  canDelete = true,
+  canEdit: _canEdit = true,
+  canDelete: _canDelete = true,
 }) => {
-  const isAdmin = currentUser.username === 'janabadmin' || currentUser.role === 'Super Admin';
+  const isAdmin = isJanabUser(currentUser);
 
-  // Navigation tab state
-  const [activeTab, setActiveTab] = useState<string>(() => {
-    if (activeSubItemId && activeSubItemId !== 'system-settings') {
-      return activeSubItemId;
+  // Navigation tab state synced with sidebar selection
+  const resolveMasterTab = (subId: string) =>
+    SETTINGS_MASTER_TAB_IDS.has(subId) ? subId : 'delete-receipt-perm';
+
+  const [activeTab, setActiveTab] = useState<string>(() => resolveMasterTab(activeSubItemId));
+
+  useEffect(() => {
+    if (SETTINGS_MASTER_TAB_IDS.has(activeSubItemId)) {
+      setActiveTab(activeSubItemId);
     }
-    return 'user-list';
-  });
+  }, [activeSubItemId]);
 
   // State
-  const [managedUsers, setManagedUsers] = useState<ManagedUser[]>(getStoredUsers);
   const [deleteReceiptPerms, setDeleteReceiptPerms] = useState<DeleteReceiptPermissionOfficer[]>(getDeleteReceiptPermissions);
   const [bankAccounts, setBankAccounts] = useState<JamaatBankAccount[]>(getJamaatBankAccounts);
   const [trustEntities, setTrustEntities] = useState<TrustWaqfMasterEntity[]>(getTrustWaqfMaster);
   const [cashLimits, setCashLimits] = useState<CashReceiptLimitConfig>(getCashReceiptLimits);
-  const [notifConfig, setNotifConfig] = useState<NotificationGatewayConfig>(getNotificationGatewayConfig);
   const [jamaatProfile, setJamaatProfile] = useState<JamaatProfileDetails>(getJamaatProfile);
   const [dateBlocking, setDateBlocking] = useState<ReceiptDateBlockingRule>(getReceiptDateBlocking);
-  const [activityLogs, setActivityLogs] = useState<ActivityLogEntry[]>(getStoredActivityLogs);
-  const [safarLogs, setSafarLogs] = useState<SafarAuditLog[]>(getSafarAuditLogs);
+  const [activityLogs] = useState<ActivityLogEntry[]>(getStoredActivityLogs);
+  const [safarLogs] = useState<SafarAuditLog[]>(getSafarAuditLogs);
 
   // Search & Filter
   const [logSearchQuery, setLogSearchQuery] = useState('');
   const [selectedAuditType, setSelectedAuditType] = useState('ALL');
 
-  // Modals
-  const [showNewUserModal, setShowNewUserModal] = useState(false);
+  // Modals & Inline Validation
   const [showBankModal, setShowBankModal] = useState(false);
   const [showTrustModal, setShowTrustModal] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [photoUploadNotice, setPhotoUploadNotice] = useState<string | null>(null);
+  const photoInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Form States
-  const [newUserForm, setNewUserForm] = useState({
-    fullName: '',
-    username: '',
-    password: '',
-    department: 'Maliyah & Khazina',
-  });
+  useEffect(() => {
+    setFormError(null);
+  }, [showBankModal, showTrustModal]);
 
   const [bankForm, setBankForm] = useState({
     bankName: '',
@@ -136,60 +135,59 @@ export const SystemSettingsMasterModule: React.FC<SystemSettingsMasterModuleProp
     notes: '',
   });
 
-  // Photo upload mock storage
+  // Photo upload storage
   const [uploadedPhotos, setUploadedPhotos] = useState<Array<{ its: string; name: string; status: string }>>([
     { its: '30491024', name: 'Janab Amil Saheb Kinana BS.jpg', status: 'Verified' },
     { its: '20481920', name: 'Mulla Shabbir Bhai Vasi.jpg', status: 'Verified' },
     { its: '20391823', name: 'Shk Mufaddal Bhai Gulamali.jpg', status: 'Verified' },
   ]);
 
-  // Handlers
-  const handleSaveUser = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newUserForm.username.trim() || !newUserForm.fullName.trim() || !newUserForm.password.trim()) {
-      alert('Please fill in Full Name, Username, and Initial Password.');
-      return;
-    }
-    const cleanUsername = newUserForm.username.trim().toLowerCase();
-    if (managedUsers.some((u) => u.username.toLowerCase() === cleanUsername) || cleanUsername === 'janabadmin') {
-      alert(`User with username "${cleanUsername}" already exists.`);
-      return;
-    }
-    const newUser: ManagedUser = {
-      id: `USER-${Date.now()}`,
-      fullName: newUserForm.fullName.trim(),
-      username: cleanUsername,
-      password: newUserForm.password.trim(),
-      department: newUserForm.department,
-      permissions: createDefaultPermissions(),
-      createdAt: new Date().toISOString(),
-    };
-    const updated = [...managedUsers, newUser];
-    setManagedUsers(updated);
-    saveStoredUsers(updated);
-    appendActivityLog(
-      currentUser.username,
-      'System Settings',
-      'User Management',
-      'CREATED_USER',
-      `Registered new user account "@${newUser.username}" (${newUser.fullName}) for department ${newUser.department}.`
+  const handleBulkPhotoFiles = (fileList: FileList | null) => {
+    if (!fileList || fileList.length === 0) return;
+    const hofs = getStoredHofs();
+    const itsLookup = new Map<string, string>();
+    hofs.forEach((hof) => {
+      itsLookup.set(hof.itsNumber, hof.fullName);
+      hof.familyMembers.forEach((m) => {
+        itsLookup.set(m.itsNumber, m.fullName);
+      });
+    });
+
+    const parsed: Array<{ its: string; name: string; status: string }> = [];
+    Array.from(fileList).forEach((file) => {
+      const match = file.name.match(/(\d{8})/);
+      const its = match ? match[1] : 'Unparsed';
+      const memberName = match ? itsLookup.get(match[1]) : undefined;
+      parsed.push({
+        its,
+        name: file.name,
+        status: memberName ? `Matched: ${memberName}` : match ? 'ITS Extracted (Unlinked)' : 'Invalid Filename',
+      });
+    });
+
+    setUploadedPhotos((prev) => [...parsed, ...prev]);
+    const matchedCount = parsed.filter((p) => p.status.startsWith('Matched:')).length;
+    setPhotoUploadNotice(
+      `Processed ${parsed.length} file(s): ${matchedCount} linked to registered Mumineen records.`
     );
-    setShowNewUserModal(false);
-    setNewUserForm({ fullName: '', username: '', password: '', department: 'Maliyah & Khazina' });
-    showToast(`User @${newUser.username} registered with granular permissions.`);
+    showToast(`Processed ${parsed.length} photo file(s) (${matchedCount} ITS matches).`);
   };
 
+  // Handlers
   const handleSaveBank = (e: React.FormEvent) => {
     e.preventDefault();
     const bal = parseFloat(bankForm.currentBalance);
-    if (!bankForm.bankName || !bankForm.accountNumber || isNaN(bal)) return;
+    if (!bankForm.bankName.trim() || !bankForm.accountNumber.trim() || isNaN(bal) || bal < 0) {
+      setFormError('Please enter Bank Name, Account Number, and a valid non-negative balance.');
+      return;
+    }
     const newAccount: JamaatBankAccount = {
       id: `BA-${Date.now()}`,
-      bankName: bankForm.bankName,
-      accountNumber: bankForm.accountNumber,
+      bankName: bankForm.bankName.trim(),
+      accountNumber: bankForm.accountNumber.trim(),
       accountType: bankForm.accountType,
-      ifscCode: bankForm.ifscCode,
-      branch: bankForm.branch,
+      ifscCode: bankForm.ifscCode.trim(),
+      branch: bankForm.branch.trim(),
       currentBalance: bal,
       isActive: true,
     };
@@ -197,27 +195,45 @@ export const SystemSettingsMasterModule: React.FC<SystemSettingsMasterModuleProp
     setBankAccounts(updated);
     saveJamaatBankAccounts(updated);
     setShowBankModal(false);
+    setBankForm({
+      bankName: '',
+      accountNumber: '',
+      accountType: 'Current',
+      ifscCode: '',
+      branch: '',
+      currentBalance: '1000000',
+    });
     showToast(`Bank Account ${newAccount.bankName} (${newAccount.accountNumber}) added.`);
   };
 
   const handleSaveTrust = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!trustForm.trustName || !trustForm.regNumber) return;
+    if (!trustForm.trustName.trim() || !trustForm.regNumber.trim()) {
+      setFormError('Please enter both Trust Name and Registration Number.');
+      return;
+    }
     const newTrust: TrustWaqfMasterEntity = {
       id: `TWM-${Date.now()}`,
-      trustName: trustForm.trustName,
-      regNumber: trustForm.regNumber,
+      trustName: trustForm.trustName.trim(),
+      regNumber: trustForm.regNumber.trim(),
       regDate: new Date().toISOString().split('T')[0],
       status80G: 'Active',
       status12A: 'Active',
-      chiefTrustee: trustForm.chiefTrustee,
-      panNumber: trustForm.panNumber,
-      notes: trustForm.notes,
+      chiefTrustee: trustForm.chiefTrustee.trim() || 'Janab Amil Saheb',
+      panNumber: trustForm.panNumber.trim(),
+      notes: trustForm.notes.trim(),
     };
     const updated = [...trustEntities, newTrust];
     setTrustEntities(updated);
     saveTrustWaqfMaster(updated);
     setShowTrustModal(false);
+    setTrustForm({
+      trustName: '',
+      regNumber: '',
+      chiefTrustee: 'Janab Amil Saheb Kinana Bhaisaheb',
+      panNumber: '',
+      notes: '',
+    });
     showToast(`Trust Entity "${newTrust.trustName}" registered.`);
   };
 
@@ -232,12 +248,6 @@ export const SystemSettingsMasterModule: React.FC<SystemSettingsMasterModuleProp
       `Updated statutory cash receipt limit to ₹${cashLimits.maxSingleReceiptCash} and PAN threshold to ₹${cashLimits.panThresholdAmount}.`
     );
     showToast('Cash receipt limit thresholds updated successfully.');
-  };
-
-  const handleUpdateNotifConfig = (e: React.FormEvent) => {
-    e.preventDefault();
-    saveNotificationGatewayConfig(notifConfig);
-    showToast('Notification gateway credentials saved successfully.');
   };
 
   const handleUpdateJamaatProfile = (e: React.FormEvent) => {
@@ -288,18 +298,15 @@ export const SystemSettingsMasterModule: React.FC<SystemSettingsMasterModuleProp
       {/* Settings Navigation Tabs */}
       <div className="bg-white border border-[#D97706]/30 rounded-xl p-2 shadow-xs flex flex-wrap gap-1.5 text-xs font-semibold">
         {[
-          { id: 'user-list', label: 'User Management', icon: Users },
-          { id: 'delete-receipt-perm', label: 'Delete Receipt Permissions', icon: Trash2 },
+          { id: 'delete-receipt-perm', label: 'Receipt Void Safeguards', icon: Trash2 },
           { id: 'bank-accounts', label: 'Bank Accounts Master', icon: CreditCard },
           { id: 'trust-waqf', label: 'Trust & Waqf Master', icon: Building },
           { id: 'cash-limits', label: 'Cash Limits', icon: ShieldCheck },
-          { id: 'notifications', label: 'Notifications Gateway', icon: Bell },
           { id: 'jamaat-details', label: 'Jamaat Profile Details', icon: Sliders },
           { id: 'date-blocking', label: 'Receipt Date Blocking', icon: Calendar },
           { id: 'bulk-photos', label: 'Bulk Photos Upload', icon: Camera },
           { id: 'activity-logs', label: 'Central Activity Logs', icon: History },
           { id: 'safar-logs', label: 'Safar Audit Trail', icon: FileText },
-          { id: 'change-password', label: 'Change Password', icon: KeyRound },
         ].map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -321,81 +328,7 @@ export const SystemSettingsMasterModule: React.FC<SystemSettingsMasterModuleProp
         })}
       </div>
 
-      {/* 1. USER LIST & REGISTRATION */}
-      {activeTab === 'user-list' && (
-        <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
-            <div>
-              <h3 className="text-base font-bold text-slate-900">Registered System Users & RBAC Officers</h3>
-              <p className="text-xs text-slate-500">Departmental operators and officers with verified credentials</p>
-            </div>
-            {canAdd && (
-              <button
-                type="button"
-                onClick={() => setShowNewUserModal(true)}
-                className="inline-flex items-center space-x-1.5 px-3 py-2 text-xs font-black text-[#0F172A] bg-[#EAB308] hover:bg-[#D4AF37] rounded-lg transition-all shadow-xs cursor-pointer shrink-0"
-              >
-                <UserPlus className="w-3.5 h-3.5" />
-                <span>Register New User</span>
-              </button>
-            )}
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="bg-slate-50 border-y border-slate-200 text-slate-600 font-bold">
-                  <th className="py-2.5 px-3">Username</th>
-                  <th className="py-2.5 px-3">Full Officer Name</th>
-                  <th className="py-2.5 px-3">Department</th>
-                  <th className="py-2.5 px-3">Permissions Scope</th>
-                  <th className="py-2.5 px-3">Created Date</th>
-                  <th className="py-2.5 px-3 text-right">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                <tr className="bg-amber-50/40">
-                  <td className="py-2.5 px-3 font-mono font-bold text-amber-900">janabadmin</td>
-                  <td className="py-2.5 px-3 font-black text-slate-900">Janab Amil Saheb</td>
-                  <td className="py-2.5 px-3 font-semibold text-slate-800">Jamaat Executive Leadership</td>
-                  <td className="py-2.5 px-3">
-                    <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-amber-200 text-amber-900">
-                      ROOT_SUPER_ADMIN (ALL)
-                    </span>
-                  </td>
-                  <td className="py-2.5 px-3 text-slate-500 font-mono">System Built-In</td>
-                  <td className="py-2.5 px-3 text-right">
-                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">
-                      Active
-                    </span>
-                  </td>
-                </tr>
-
-                {managedUsers.map((u) => (
-                  <tr key={u.id} className="hover:bg-slate-50">
-                    <td className="py-2.5 px-3 font-mono font-bold text-slate-800">@{u.username}</td>
-                    <td className="py-2.5 px-3 font-bold text-slate-900">{u.fullName}</td>
-                    <td className="py-2.5 px-3 text-slate-700">{u.department}</td>
-                    <td className="py-2.5 px-3 text-slate-600">
-                      {Object.keys(u.permissions || {}).length} Sub-Modules Configured
-                    </td>
-                    <td className="py-2.5 px-3 text-slate-500 font-mono">
-                      {u.createdAt ? u.createdAt.split('T')[0] : '2026-10-01'}
-                    </td>
-                    <td className="py-2.5 px-3 text-right">
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">
-                        Active
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* 2. DELETE RECEIPT PERMISSIONS */}
+      {/* 1. DELETE RECEIPT PERMISSIONS */}
       {activeTab === 'delete-receipt-perm' && (
         <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs space-y-4">
           <div className="pb-3 border-b border-slate-100">
@@ -581,67 +514,7 @@ export const SystemSettingsMasterModule: React.FC<SystemSettingsMasterModuleProp
         </div>
       )}
 
-      {/* 6. NOTIFICATIONS GATEWAY */}
-      {activeTab === 'notifications' && (
-        <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs space-y-4 max-w-2xl">
-          <div className="pb-3 border-b border-slate-100">
-            <h3 className="text-base font-bold text-slate-900">Notification Gateway Configuration</h3>
-            <p className="text-xs text-slate-500">API keys for WhatsApp WATI, SMS DLT gateway, and SMTP mailer</p>
-          </div>
-
-          <form onSubmit={handleUpdateNotifConfig} className="space-y-4 text-xs">
-            <div>
-              <label className="block font-bold text-slate-700 mb-1">WhatsApp Gateway URL (WATI)</label>
-              <input
-                type="text"
-                value={notifConfig.whatsappGatewayUrl}
-                onChange={(e) => setNotifConfig({ ...notifConfig, whatsappGatewayUrl: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-mono"
-              />
-            </div>
-
-            <div>
-              <label className="block font-bold text-slate-700 mb-1">WhatsApp API Key / Bearer Token</label>
-              <input
-                type="password"
-                value={notifConfig.whatsappApiKey}
-                onChange={(e) => setNotifConfig({ ...notifConfig, whatsappApiKey: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-mono"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block font-bold text-slate-700 mb-1">SMS DLT Sender ID</label>
-                <input
-                  type="text"
-                  value={notifConfig.smsSenderId}
-                  onChange={(e) => setNotifConfig({ ...notifConfig, smsSenderId: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-mono"
-                />
-              </div>
-              <div>
-                <label className="block font-bold text-slate-700 mb-1">SMTP Mail Sender</label>
-                <input
-                  type="text"
-                  value={notifConfig.emailSenderAddress}
-                  onChange={(e) => setNotifConfig({ ...notifConfig, emailSenderAddress: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs"
-                />
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              className="px-4 py-2 bg-[#EAB308] hover:bg-[#D4AF37] text-[#0F172A] font-black rounded-lg cursor-pointer"
-            >
-              Save Notification Credentials
-            </button>
-          </form>
-        </div>
-      )}
-
-      {/* 7. JAMAAT PROFILE DETAILS */}
+      {/* 6. JAMAAT PROFILE DETAILS */}
       {activeTab === 'jamaat-details' && (
         <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs space-y-4 max-w-2xl">
           <div className="pb-3 border-b border-slate-100">
@@ -760,27 +633,46 @@ export const SystemSettingsMasterModule: React.FC<SystemSettingsMasterModuleProp
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
             <div>
               <h3 className="text-base font-bold text-slate-900">Bulk Member Photos Upload & ITS Auto-Match</h3>
-              <p className="text-xs text-slate-500">Upload ZIP archive or multiple image files named with 8-digit ITS numbers</p>
+              <p className="text-xs text-slate-500">Select image files named with 8-digit ITS numbers to match registered Mumineen records</p>
             </div>
-            <button
-              type="button"
-              onClick={() => {
-                const sample = { its: '30491112', name: '30491112_photo.jpg', status: 'Matched & Verified' };
-                setUploadedPhotos([sample, ...uploadedPhotos]);
-                showToast('Sample ITS photo matched & synchronized.');
-              }}
-              className="inline-flex items-center space-x-1.5 px-3 py-2 text-xs font-black text-[#0F172A] bg-[#EAB308] hover:bg-[#D4AF37] rounded-lg transition-all shadow-xs cursor-pointer"
-            >
-              <Upload className="w-3.5 h-3.5" />
-              <span>Simulate Bulk Match</span>
-            </button>
+            <div>
+              <input
+                ref={photoInputRef}
+                type="file"
+                multiple
+                accept="image/*"
+                onChange={(e) => {
+                  handleBulkPhotoFiles(e.target.files);
+                  e.target.value = '';
+                }}
+                className="hidden"
+              />
+              <button
+                type="button"
+                onClick={() => photoInputRef.current?.click()}
+                className="inline-flex items-center space-x-1.5 px-3 py-2 text-xs font-black text-[#0F172A] bg-[#EAB308] hover:bg-[#D4AF37] rounded-lg transition-all shadow-xs cursor-pointer"
+              >
+                <Upload className="w-3.5 h-3.5" />
+                <span>Select Photo Files</span>
+              </button>
+            </div>
           </div>
 
-          <div className="p-8 border-2 border-dashed border-amber-300 rounded-2xl bg-amber-50/30 text-center space-y-2">
+          {photoUploadNotice && (
+            <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
+              <span>{photoUploadNotice}</span>
+            </div>
+          )}
+
+          <div
+            onClick={() => photoInputRef.current?.click()}
+            className="p-8 border-2 border-dashed border-amber-300 rounded-2xl bg-amber-50/30 hover:bg-amber-50/60 transition-colors text-center space-y-2 cursor-pointer"
+          >
             <Camera className="w-10 h-10 text-amber-600 mx-auto" />
-            <h4 className="text-sm font-bold text-slate-900">Drag & Drop ITS Photo Files</h4>
+            <h4 className="text-sm font-bold text-slate-900">Click to Select ITS Photo Files</h4>
             <p className="text-xs text-slate-500 max-w-md mx-auto">
-              Images named as <code>[ITS_NUMBER].jpg</code> (e.g. <code>20481920.jpg</code>) are automatically parsed and linked to member directory records.
+              Images named with an 8-digit ITS number (e.g. <code>20481920.jpg</code>) are automatically matched against the Mumineen directory.
             </p>
           </div>
 
@@ -878,88 +770,6 @@ export const SystemSettingsMasterModule: React.FC<SystemSettingsMasterModuleProp
         </div>
       )}
 
-      {/* 12. CHANGE PASSWORD */}
-      {activeTab === 'change-password' && (
-        <ChangePasswordPage currentUser={currentUser} showToast={showToast} />
-      )}
-
-      {/* MODAL: REGISTER NEW USER */}
-      {showNewUserModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-amber-300 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <h3 className="text-base font-bold text-slate-900">Register New Department User</h3>
-              <button type="button" onClick={() => setShowNewUserModal(false)} className="text-slate-400 hover:text-slate-600 cursor-pointer">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveUser} className="space-y-3 text-xs">
-              <div>
-                <label className="block font-bold text-slate-700 mb-1">Full Officer Name</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Mulla Shabbir Bhai Vasi"
-                  value={newUserForm.fullName}
-                  onChange={(e) => setNewUserForm({ ...newUserForm, fullName: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Username (Login ID)</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="shabbirvasi"
-                    value={newUserForm.username}
-                    onChange={(e) => setNewUserForm({ ...newUserForm, username: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-mono font-bold"
-                  />
-                </div>
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Initial Password</label>
-                  <input
-                    type="password"
-                    required
-                    placeholder="Temporary password"
-                    value={newUserForm.password}
-                    onChange={(e) => setNewUserForm({ ...newUserForm, password: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-mono"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block font-bold text-slate-700 mb-1">Primary Department</label>
-                <select
-                  value={newUserForm.department}
-                  onChange={(e) => setNewUserForm({ ...newUserForm, department: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-semibold"
-                >
-                  <option value="Maliyah & Khazina">Maliyah & Khazina (Treasury)</option>
-                  <option value="Faizul Mawaidil Burhaniyah">Faizul Mawaidil Burhaniyah</option>
-                  <option value="Sabeel Department">Sabeel Department</option>
-                  <option value="General Secretariat">General Secretariat</option>
-                  <option value="Taleem & Madrasa Saifiyah">Taleem & Madrasa Saifiyah</option>
-                </select>
-              </div>
-
-              <div className="flex justify-end space-x-2 pt-3 border-t border-slate-100">
-                <button type="button" onClick={() => setShowNewUserModal(false)} className="px-4 py-2 border border-slate-300 rounded-lg cursor-pointer">
-                  Cancel
-                </button>
-                <button type="submit" className="px-4 py-2 bg-[#EAB308] hover:bg-[#D4AF37] text-[#0F172A] font-black rounded-lg cursor-pointer">
-                  Register Officer
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
       {/* MODAL: ADD BANK */}
       {showBankModal && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
@@ -972,6 +782,12 @@ export const SystemSettingsMasterModule: React.FC<SystemSettingsMasterModuleProp
             </div>
 
             <form onSubmit={handleSaveBank} className="space-y-3 text-xs">
+              {formError && (
+                <div className="p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 font-semibold flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600" />
+                  <span>{formError}</span>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">Bank Name</label>
@@ -1037,6 +853,95 @@ export const SystemSettingsMasterModule: React.FC<SystemSettingsMasterModuleProp
                 </button>
                 <button type="submit" className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-lg cursor-pointer">
                   Save Account
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: ADD TRUST / WAQF ENTITY */}
+      {showTrustModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-amber-300 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 className="text-base font-bold text-slate-900">Register Trust / Waqf Entity</h3>
+              <button type="button" onClick={() => setShowTrustModal(false)} className="text-slate-400 hover:text-slate-600 cursor-pointer">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveTrust} className="space-y-3 text-xs">
+              {formError && (
+                <div className="p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 font-semibold flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600" />
+                  <span>{formError}</span>
+                </div>
+              )}
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Trust / Waqf Name</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Anjuman-e-Burhani Jamaat Trust"
+                  value={trustForm.trustName}
+                  onChange={(e) => setTrustForm({ ...trustForm, trustName: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-semibold"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Registration #</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. E/19402/AHM"
+                    value={trustForm.regNumber}
+                    onChange={(e) => setTrustForm({ ...trustForm, regNumber: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">PAN Number</label>
+                  <input
+                    type="text"
+                    placeholder="AAATB1234C"
+                    value={trustForm.panNumber}
+                    onChange={(e) => setTrustForm({ ...trustForm, panNumber: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-mono uppercase"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Chief Trustee</label>
+                <input
+                  type="text"
+                  value={trustForm.chiefTrustee}
+                  onChange={(e) => setTrustForm({ ...trustForm, chiefTrustee: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Notes</label>
+                <textarea
+                  rows={2}
+                  placeholder="Statutory exemption or charitable scope..."
+                  value={trustForm.notes}
+                  onChange={(e) => setTrustForm({ ...trustForm, notes: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs"
+                />
+              </div>
+
+              <div className="flex justify-end space-x-2 pt-3 border-t border-slate-100">
+                <button type="button" onClick={() => setShowTrustModal(false)} className="px-4 py-2 border border-slate-300 rounded-lg cursor-pointer">
+                  Cancel
+                </button>
+                <button type="submit" className="px-4 py-2 bg-[#EAB308] hover:bg-[#D4AF37] text-[#0F172A] font-black rounded-lg cursor-pointer">
+                  Register Trust
                 </button>
               </div>
             </form>

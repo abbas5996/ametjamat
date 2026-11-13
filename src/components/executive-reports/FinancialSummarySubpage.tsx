@@ -17,7 +17,16 @@ import {
 } from 'lucide-react';
 import { FinancialYear, UserProfile, Mohallah } from '../../types';
 import { MOHALLAH_LIST } from '../../utils/memberMaster';
-import { calculateFinancialMetrics } from '../../utils/executiveReports';
+import { calculateFinancialMetrics, getStoredGeneralReceipts } from '../../utils/executiveReports';
+import { getStoredCollections } from '../../utils/fmbTakhmeen';
+import { getStoredSabeelTransactions } from '../../utils/sabeelManagement';
+import { getStoredBookings } from '../../utils/hallBooking';
+import {
+  DateFilterState,
+  createDefaultDateFilter,
+  resolveDateRange,
+} from '../../utils/dateFilters';
+import { DateFilterBar } from '../common/DateFilterBar';
 
 interface FinancialSummarySubpageProps {
   currentUser: UserProfile;
@@ -34,21 +43,36 @@ export const FinancialSummarySubpage: React.FC<FinancialSummarySubpageProps> = (
   // Filter States
   const [selectedYear, setSelectedYear] = useState<string>(financialYear);
   const [selectedMohallah, setSelectedMohallah] = useState<string>('all');
-  const [startDate, setStartDate] = useState<string>('');
-  const [endDate, setEndDate] = useState<string>('');
+  const [dateFilter, setDateFilter] = useState<DateFilterState>(() =>
+    createDefaultDateFilter('all')
+  );
+
+  const availableDates = useMemo(() => {
+    const fmbDates = getStoredCollections().map((c) => c.date);
+    const sabeelDates = getStoredSabeelTransactions().map((t) => t.paymentDate || t.date);
+    const bookingDates = getStoredBookings().map((b) => b.eventDate);
+    const receiptDates = getStoredGeneralReceipts().map((r) => r.date);
+    return [...fmbDates, ...sabeelDates, ...bookingDates, ...receiptDates];
+  }, []);
+
+  const resolvedRange = useMemo(() => resolveDateRange(dateFilter), [dateFilter]);
 
   // Reset filters
   const handleResetFilters = () => {
     setSelectedYear(financialYear);
     setSelectedMohallah('all');
-    setStartDate('');
-    setEndDate('');
+    setDateFilter(createDefaultDateFilter('all'));
   };
 
   // Re-calculate metrics dynamically based on filters
   const metrics = useMemo(() => {
-    return calculateFinancialMetrics(selectedYear, selectedMohallah, startDate, endDate);
-  }, [selectedYear, selectedMohallah, startDate, endDate]);
+    return calculateFinancialMetrics(
+      selectedYear,
+      selectedMohallah,
+      resolvedRange.from || undefined,
+      resolvedRange.to || undefined
+    );
+  }, [selectedYear, selectedMohallah, resolvedRange.from, resolvedRange.to]);
 
   // Percentages calculation
   const fmbPct =
@@ -134,25 +158,7 @@ export const FinancialSummarySubpage: React.FC<FinancialSummarySubpageProps> = (
               </select>
             </div>
 
-            {/* Date Range Picker */}
-            <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-xs">
-              <span className="text-[11px] text-slate-400 font-medium">From:</span>
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="bg-transparent text-slate-800 outline-none text-xs"
-              />
-              <span className="text-[11px] text-slate-400 font-medium">To:</span>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="bg-transparent text-slate-800 outline-none text-xs"
-              />
-            </div>
-
-            {(selectedMohallah !== 'all' || startDate || endDate || selectedYear !== financialYear) && (
+            {(selectedMohallah !== 'all' || dateFilter.mode !== 'all' || selectedYear !== financialYear) && (
               <button
                 type="button"
                 onClick={handleResetFilters}
@@ -164,6 +170,16 @@ export const FinancialSummarySubpage: React.FC<FinancialSummarySubpageProps> = (
               </button>
             )}
           </div>
+        </div>
+
+        <div className="mt-3 pt-3 border-t border-slate-100">
+          <DateFilterBar
+            value={dateFilter}
+            onChange={setDateFilter}
+            availableDates={availableDates}
+            title="Period Filter"
+            compact
+          />
         </div>
       </div>
 

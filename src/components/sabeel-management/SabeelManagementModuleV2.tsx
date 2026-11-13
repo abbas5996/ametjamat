@@ -125,39 +125,56 @@ export const SabeelManagementModuleV2: React.FC<Props> = ({
     },
   ];
 
+  const activeGroupIdx = Math.max(
+    0,
+    groups.findIndex((grp) => grp.items.some((item) => item.id === currentSubPage))
+  );
+  const currentGroup = groups[activeGroupIdx] || groups[0];
+
   return (
     <div className="space-y-6">
-      {/* Top Categorized Navigation Strip */}
-      <div className="bg-white border border-amber-300/40 rounded-2xl p-3 shadow-xs space-y-3">
-        <div className="flex flex-wrap items-center gap-6">
+      {/* Streamlined 2-Tier Categorized Navigation Strip */}
+      <div className="bg-white border border-amber-300/40 rounded-2xl p-3 shadow-xs space-y-2.5">
+        <div className="flex flex-wrap items-center gap-1.5 pb-2 border-b border-slate-100">
+          <span className="text-[10px] font-black uppercase text-amber-900/70 tracking-wider mr-1">
+            Workspace:
+          </span>
           {groups.map((grp, gIdx) => (
-            <div key={grp.title} className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-[10px] font-black uppercase text-amber-900/70 tracking-wider mr-1">
-                {grp.title}:
-              </span>
-              {grp.items.map(item => {
-                const Icon = item.icon;
-                const isActive = currentSubPage === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => setCurrentSubPage(item.id)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
-                      isActive
-                        ? 'bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 shadow-xs'
-                        : 'text-slate-600 hover:text-slate-900 hover:bg-amber-50/80'
-                    }`}
-                  >
-                    <Icon className="w-3.5 h-3.5" />
-                    <span>{item.label}</span>
-                  </button>
-                );
-              })}
-              {gIdx < groups.length - 1 && (
-                <div className="hidden lg:block h-4 w-px bg-slate-200 mx-2" />
-              )}
-            </div>
+            <button
+              key={grp.title}
+              type="button"
+              onClick={() => setCurrentSubPage(grp.items[0].id)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                gIdx === activeGroupIdx
+                  ? 'bg-slate-900 text-amber-300 shadow-xs'
+                  : 'bg-slate-100 text-slate-600 hover:bg-amber-50 hover:text-slate-900'
+              }`}
+            >
+              {grp.title}
+            </button>
           ))}
+        </div>
+
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5">
+          {currentGroup.items.map((item) => {
+            const Icon = item.icon;
+            const isActive = currentSubPage === item.id;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setCurrentSubPage(item.id)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0 ${
+                  isActive
+                    ? 'bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-amber-50/80'
+                }`}
+              >
+                <Icon className="w-3.5 h-3.5" />
+                <span>{item.label}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 

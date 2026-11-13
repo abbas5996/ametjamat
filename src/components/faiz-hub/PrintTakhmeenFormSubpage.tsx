@@ -122,7 +122,7 @@ export const PrintTakhmeenFormSubpage: React.FC<Props> = ({
               Print Takhmeen Form
             </h2>
             <p className="text-xs text-slate-600 mt-0.5">
-              Advanced search filters, copy multiplier, and bulk pledge form generation [cite: 28]
+              Advanced search filters, copy multiplier, and bulk pledge form generation
             </p>
           </div>
         </div>

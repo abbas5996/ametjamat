@@ -4,7 +4,6 @@ import {
   Receipt,
   FileSpreadsheet,
   ShieldAlert,
-  ArrowRight,
 } from 'lucide-react';
 import {
   UserProfile,
@@ -12,6 +11,7 @@ import {
   GeneralReceiptRecord,
 } from '../../types';
 import { checkUserPermission } from '../../utils/rbac';
+import { isJanabUser } from '../../utils/auth';
 import { getStoredGeneralReceipts, saveStoredGeneralReceipts } from '../../utils/executiveReports';
 import { FinancialSummarySubpage } from './FinancialSummarySubpage';
 import { GeneralReceiptGeneratorSubpage } from './GeneralReceiptGeneratorSubpage';
@@ -39,7 +39,7 @@ export const ExecutiveReportsModule: React.FC<ExecutiveReportsModuleProps> = ({
   // Active Tab state: 'summary' | 'receipts' | 'reports'
   const [activeTab, setActiveTab] = useState<'summary' | 'receipts' | 'reports'>(() => {
     if (subItemId === 'counter-payment') return 'receipts';
-    if (subItemId === 'refund-ledger') return 'reports';
+    if (subItemId === 'reports-hub' || subItemId === 'refund-ledger') return 'reports';
     return 'summary';
   });
 
@@ -47,9 +47,9 @@ export const ExecutiveReportsModule: React.FC<ExecutiveReportsModuleProps> = ({
   useEffect(() => {
     if (subItemId === 'counter-payment') {
       setActiveTab('receipts');
-    } else if (subItemId === 'refund-ledger') {
+    } else if (subItemId === 'reports-hub' || subItemId === 'refund-ledger') {
       setActiveTab('reports');
-    } else if (subItemId === 'receipts-history') {
+    } else if (subItemId === 'financial-summary' || subItemId === 'receipts-history') {
       setActiveTab('summary');
     }
   }, [subItemId]);
@@ -60,19 +60,22 @@ export const ExecutiveReportsModule: React.FC<ExecutiveReportsModuleProps> = ({
     saveStoredGeneralReceipts(updated);
   };
 
-  // Granular RBAC Permissions
-  const canView = checkUserPermission(currentUser, 'counter-payment', 'view') ||
-    checkUserPermission(currentUser, 'receipts-history', 'view') ||
-    currentUser.role === 'super_admin';
+  // Granular RBAC Permissions (Janab exclusive / authorized session)
+  const isJanab = isJanabUser(currentUser);
+  const canView =
+    isJanab ||
+    checkUserPermission(currentUser, 'financial-summary', 'view') ||
+    checkUserPermission(currentUser, 'counter-payment', 'view') ||
+    checkUserPermission(currentUser, 'reports-hub', 'view');
 
-  const canAdd = checkUserPermission(currentUser, 'counter-payment', 'add') ||
-    currentUser.role === 'super_admin';
+  const canAdd =
+    isJanab || checkUserPermission(currentUser, 'counter-payment', 'add');
 
-  const canEdit = checkUserPermission(currentUser, 'counter-payment', 'edit') ||
-    currentUser.role === 'super_admin';
+  const canEdit =
+    isJanab || checkUserPermission(currentUser, 'counter-payment', 'edit');
 
-  const canDelete = checkUserPermission(currentUser, 'counter-payment', 'delete') ||
-    currentUser.role === 'super_admin';
+  const canDelete =
+    isJanab || checkUserPermission(currentUser, 'counter-payment', 'delete');
 
   // Permission access check
   if (!canView) {

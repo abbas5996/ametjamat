@@ -32,6 +32,13 @@ import {
   getStoredCollections,
 } from '../../utils/fmbTakhmeen';
 import { appendActivityLog } from '../../utils/rbac';
+import {
+  DateFilterState,
+  createDefaultDateFilter,
+  matchesDateFilter,
+  resolveDateRange,
+} from '../../utils/dateFilters';
+import { DateFilterBar } from '../common/DateFilterBar';
 
 interface FaizDashboardProps {
   financialYear: FinancialYear;
@@ -55,6 +62,9 @@ export const FaizDashboard: React.FC<FaizDashboardProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [tierFilter, setTierFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [dateFilter, setDateFilter] = useState<DateFilterState>(() =>
+    createDefaultDateFilter('all')
+  );
 
   // Real-time Clock
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -161,14 +171,24 @@ export const FaizDashboard: React.FC<FaizDashboardProps> = ({
   const totalThaalis = thaalis.length || 1;
   const activePercent = Math.round((activeThaalisCount / totalThaalis) * 100);
 
+  const filteredCollections = useMemo(
+    () => collections.filter((c) => matchesDateFilter(c.date, dateFilter)),
+    [collections, dateFilter]
+  );
+
+  const resolvedDateRange = useMemo(() => resolveDateRange(dateFilter), [dateFilter]);
+
   // Calculations: Takhmeen Financial Ticker
   const totalCommitted = useMemo(() => {
     return takhmeens.reduce((sum, t) => sum + (t.committedAmount || 0), 0);
   }, [takhmeens]);
 
   const totalCollected = useMemo(() => {
+    if (dateFilter.mode !== 'all') {
+      return filteredCollections.reduce((sum, c) => sum + (c.amount || 0), 0);
+    }
     return takhmeens.reduce((sum, t) => sum + (t.paidAmount || 0), 0);
-  }, [takhmeens]);
+  }, [takhmeens, filteredCollections, dateFilter.mode]);
 
   const totalOutstanding = useMemo(() => {
     return takhmeens.reduce((sum, t) => sum + (t.balanceDue || 0), 0);
@@ -366,6 +386,15 @@ export const FaizDashboard: React.FC<FaizDashboardProps> = ({
         </div>
       </div>
 
+      {/* ── PERIOD FILTER BAR (WEEK / MONTH / DYNAMIC MONTH / CUSTOM RANGE) ── */}
+      <DateFilterBar
+        value={dateFilter}
+        onChange={setDateFilter}
+        availableDates={collections.map((c) => c.date)}
+        title="Faiz Collection Period"
+        compact
+      />
+
       {/* ── FINANCIAL TELEMETRY TICKER (TAKHMEEN PROGRESS) ── */}
       <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
@@ -377,6 +406,11 @@ export const FaizDashboard: React.FC<FaizDashboardProps> = ({
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
                 {realizationPct}% Realized
               </span>
+              {dateFilter.mode !== 'all' && (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
+                  {resolvedDateRange.label} ({filteredCollections.length} receipts)
+                </span>
+              )}
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
               Live tracking of committed annual takhmeens vs actual receipts logged

@@ -2,7 +2,7 @@
  * Part 2B Data Management Utilities
  * Powers:
  * 1. Voluntary Contributions (Hadiyah / Sadaqah / Niyaz)
- * 2. Community Schemes (Taher, Mohammedii, Husain, Hoob, Corpus, Sarkari Lagat)
+ * 2. Community Schemes (Taher, Mohammedi, Husain, Hoob, Corpus, Sarkari Lagat)
  * 3. Wajebaat Management (Khums / Zakat / Wajebaat Takhmeen)
  * 4. Rent Management (Jamaat Properties, Tenants, Agreements, Kiraya Receipts)
  */
@@ -155,7 +155,7 @@ export const saveStoredHadiyahReceipts = (items: HadiyahReceipt[]) => {
 
 export type SchemeName =
   | 'Taher Scheme'
-  | 'Mohammedii Scheme'
+  | 'Mohammedi Scheme'
   | 'Husain Scheme'
   | 'Hoob'
   | 'Corpus Fund'
@@ -163,7 +163,7 @@ export type SchemeName =
 
 export const ALL_SCHEMES: SchemeName[] = [
   'Taher Scheme',
-  'Mohammedii Scheme',
+  'Mohammedi Scheme',
   'Husain Scheme',
   'Hoob',
   'Corpus Fund',
@@ -222,8 +222,8 @@ export const SCHEME_RECEIPTS_KEY = 'jamat_scheme_receipts_v1';
 export const INITIAL_SCHEME_CATEGORIES: SchemeCategory[] = [
   { id: 'scat-1', schemeName: 'Taher Scheme', name: 'Taher Prime Tier', code: 'TS-PRIME', suggestedTakhmeen: 25000, description: 'Medical assistance and education micro-aid commitment.', isActive: true },
   { id: 'scat-2', schemeName: 'Taher Scheme', name: 'Taher Standard Tier', code: 'TS-STD', suggestedTakhmeen: 12000, description: 'Standard family contribution for welfare aid.', isActive: true },
-  { id: 'scat-3', schemeName: 'Mohammedii Scheme', name: 'Mohammedii Platinum', code: 'MS-PLAT', suggestedTakhmeen: 50000, description: 'Qardan Hasana seed capitalization tier.', isActive: true },
-  { id: 'scat-4', schemeName: 'Mohammedii Scheme', name: 'Mohammedii Silver', code: 'MS-SILVER', suggestedTakhmeen: 15000, description: 'General business revolving fund commitment.', isActive: true },
+  { id: 'scat-3', schemeName: 'Mohammedi Scheme', name: 'Mohammedi Platinum', code: 'MS-PLAT', suggestedTakhmeen: 50000, description: 'Qardan Hasana seed capitalization tier.', isActive: true },
+  { id: 'scat-4', schemeName: 'Mohammedi Scheme', name: 'Mohammedi Silver', code: 'MS-SILVER', suggestedTakhmeen: 15000, description: 'General business revolving fund commitment.', isActive: true },
   { id: 'scat-5', schemeName: 'Husain Scheme', name: 'Husain Karbala Endowment', code: 'HS-ENDOW', suggestedTakhmeen: 35000, description: 'Ziyarat subsidy fund for senior citizens.', isActive: true },
   { id: 'scat-6', schemeName: 'Hoob', name: 'Dawat Hoob Standard', code: 'HOOB-STD', suggestedTakhmeen: 11000, description: 'Annual community allegiance and dawat hoob.', isActive: true },
   { id: 'scat-7', schemeName: 'Corpus Fund', name: 'Infrastructure Corpus Gold', code: 'CORP-GOLD', suggestedTakhmeen: 100000, description: 'Jamaat asset acquisition and capital infrastructure reserve.', isActive: true },
@@ -247,7 +247,7 @@ export const INITIAL_SCHEME_TAKHMEN: SchemeTakhmeen[] = [
   },
   {
     id: 'st-2',
-    schemeName: 'Mohammedii Scheme',
+    schemeName: 'Mohammedi Scheme',
     categoryCode: 'MS-PLAT',
     itsNumber: '40392188',
     hofName: 'Shaikh Murtaza Bhai Badri',
@@ -323,7 +323,7 @@ export const INITIAL_SCHEME_RECEIPTS: SchemeReceipt[] = [
     id: 'srec-2',
     receiptNo: 'SCH-1447-002',
     takhmeenId: 'st-2',
-    schemeName: 'Mohammedii Scheme',
+    schemeName: 'Mohammedi Scheme',
     itsNumber: '40392188',
     hofName: 'Shaikh Murtaza Bhai Badri',
     amount: 50000,
@@ -368,13 +368,19 @@ export const INITIAL_SCHEME_RECEIPTS: SchemeReceipt[] = [
   },
 ];
 
+const normalizeLegacySchemeName = (name: string): SchemeName =>
+  (name === 'Mohammedii Scheme' ? 'Mohammedi Scheme' : name) as SchemeName;
+
 export const getStoredSchemeCategories = (): SchemeCategory[] => {
   const d = localStorage.getItem(SCHEME_CATEGORIES_KEY);
   if (!d) {
     localStorage.setItem(SCHEME_CATEGORIES_KEY, JSON.stringify(INITIAL_SCHEME_CATEGORIES));
     return INITIAL_SCHEME_CATEGORIES;
   }
-  try { return JSON.parse(d); } catch { return INITIAL_SCHEME_CATEGORIES; }
+  try {
+    const parsed = JSON.parse(d) as SchemeCategory[];
+    return parsed.map(c => ({ ...c, schemeName: normalizeLegacySchemeName(c.schemeName) }));
+  } catch { return INITIAL_SCHEME_CATEGORIES; }
 };
 
 export const saveStoredSchemeCategories = (items: SchemeCategory[]) => {
@@ -387,7 +393,10 @@ export const getStoredSchemeTakhmeens = (): SchemeTakhmeen[] => {
     localStorage.setItem(SCHEME_TAKHMEN_KEY, JSON.stringify(INITIAL_SCHEME_TAKHMEN));
     return INITIAL_SCHEME_TAKHMEN;
   }
-  try { return JSON.parse(d); } catch { return INITIAL_SCHEME_TAKHMEN; }
+  try {
+    const parsed = JSON.parse(d) as SchemeTakhmeen[];
+    return parsed.map(t => ({ ...t, schemeName: normalizeLegacySchemeName(t.schemeName) }));
+  } catch { return INITIAL_SCHEME_TAKHMEN; }
 };
 
 export const saveStoredSchemeTakhmeens = (items: SchemeTakhmeen[]) => {
@@ -400,7 +409,10 @@ export const getStoredSchemeReceipts = (): SchemeReceipt[] => {
     localStorage.setItem(SCHEME_RECEIPTS_KEY, JSON.stringify(INITIAL_SCHEME_RECEIPTS));
     return INITIAL_SCHEME_RECEIPTS;
   }
-  try { return JSON.parse(d); } catch { return INITIAL_SCHEME_RECEIPTS; }
+  try {
+    const parsed = JSON.parse(d) as SchemeReceipt[];
+    return parsed.map(r => ({ ...r, schemeName: normalizeLegacySchemeName(r.schemeName) }));
+  } catch { return INITIAL_SCHEME_RECEIPTS; }
 };
 
 export const saveStoredSchemeReceipts = (items: SchemeReceipt[]) => {

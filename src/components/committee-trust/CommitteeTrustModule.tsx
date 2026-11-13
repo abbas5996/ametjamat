@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Briefcase,
   Users,
@@ -52,6 +52,7 @@ import {
   saveTrustAccountTransfers,
 } from '../../utils/part4Management';
 import { UserProfile, FinancialYear } from '../../types';
+import { toIsoDate } from '../../utils/dateFilters';
 
 interface CommitteeTrustModuleProps {
   currentUser: UserProfile;
@@ -81,6 +82,14 @@ export const CommitteeTrustModule: React.FC<CommitteeTrustModuleProps> = ({
     return 'committee-dashboard';
   });
 
+  useEffect(() => {
+    if (activeSubItemId && activeSubItemId !== 'committee-trust') {
+      setActiveTab(activeSubItemId);
+    } else {
+      setActiveTab('committee-dashboard');
+    }
+  }, [activeSubItemId]);
+
   // State
   const [portfolios, setPortfolios] = useState<CommitteePortfolio[]>(getCommitteePortfolios);
   const [members, setMembers] = useState<CommitteeMember[]>(getCommitteeMembers);
@@ -102,6 +111,11 @@ export const CommitteeTrustModule: React.FC<CommitteeTrustModuleProps> = ({
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [showOpeningModal, setShowOpeningModal] = useState(false);
   const [selectedReceipt, setSelectedReceipt] = useState<TrustIncomeEntry | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setFormError(null);
+  }, [showMemberModal, showIncomeModal, showExpenseModal, showTransferModal, showOpeningModal]);
 
   // Form States
   const [memberForm, setMemberForm] = useState({
@@ -168,11 +182,49 @@ export const CommitteeTrustModule: React.FC<CommitteeTrustModuleProps> = ({
 
   const netSurplus = totalIncome - totalExpense;
 
+  const ledgerRows = useMemo(() => {
+    type RawLedgerItem = {
+      id: string;
+      date: string;
+      docRef: string;
+      headName: string;
+      party: string;
+      creditInflow: number;
+      debitOutflow: number;
+    };
+    const combined: RawLedgerItem[] = [
+      ...incomeEntries.map((inc) => ({
+        id: inc.id,
+        date: inc.date,
+        docRef: inc.receiptNo,
+        headName: inc.headName,
+        party: inc.receivedFrom,
+        creditInflow: inc.amount,
+        debitOutflow: 0,
+      })),
+      ...expenseEntries.map((exp) => ({
+        id: exp.id,
+        date: exp.date,
+        docRef: exp.voucherNo,
+        headName: exp.headName,
+        party: exp.paidTo,
+        creditInflow: 0,
+        debitOutflow: exp.amount,
+      })),
+    ].sort((a, b) => (toIsoDate(a.date) || a.date).localeCompare(toIsoDate(b.date) || b.date));
+
+    let running = totalOpeningBalance;
+    return combined.map((item) => {
+      running = running + item.creditInflow - item.debitOutflow;
+      return { ...item, runningBalance: running };
+    });
+  }, [incomeEntries, expenseEntries, totalOpeningBalance]);
+
   // Handlers
   const handleSaveMember = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!memberForm.fullName || !memberForm.itsNumber || !memberForm.roleTitle) {
-      alert('Please fill in Full Name, ITS Number, and Role Title');
+    if (!memberForm.fullName.trim() || !memberForm.itsNumber.trim() || !memberForm.roleTitle.trim()) {
+      setFormError('Please fill in Full Name, ITS Number, and Role Title.');
       return;
     }
     const selectedPort = portfolios.find((p) => p.id === memberForm.portfolioId);
@@ -210,7 +262,7 @@ export const CommitteeTrustModule: React.FC<CommitteeTrustModuleProps> = ({
     e.preventDefault();
     const amt = parseFloat(incomeForm.amount);
     if (!amt || amt <= 0 || !incomeForm.headId) {
-      alert('Please enter a valid amount and select an Income Head.');
+      setFormError('Please enter a valid positive amount and select an Income Head.');
       return;
     }
     const head = incomeHeads.find((h) => h.id === incomeForm.headId);
@@ -250,8 +302,8 @@ export const CommitteeTrustModule: React.FC<CommitteeTrustModuleProps> = ({
   const handleSaveExpense = (e: React.FormEvent) => {
     e.preventDefault();
     const amt = parseFloat(expenseForm.amount);
-    if (!amt || amt <= 0 || !expenseForm.headId || !expenseForm.paidTo) {
-      alert('Please enter valid amount, Expense Head, and Payee name.');
+    if (!amt || amt <= 0 || !expenseForm.headId || !expenseForm.paidTo.trim()) {
+      setFormError('Please enter a valid amount, Expense Head, and Payee name.');
       return;
     }
     const head = expenseHeads.find((h) => h.id === expenseForm.headId);
@@ -292,7 +344,7 @@ export const CommitteeTrustModule: React.FC<CommitteeTrustModuleProps> = ({
     e.preventDefault();
     const amt = parseFloat(transferForm.amount);
     if (!amt || amt <= 0 || transferForm.fromAccountId === transferForm.toAccountId) {
-      alert('Please enter a valid amount and ensure Source and Destination accounts differ.');
+      setFormError('Please enter a valid positive amount and ensure Source and Destination accounts differ.');
       return;
     }
     const newTransfer: TrustAccountTransfer = {
@@ -326,8 +378,8 @@ export const CommitteeTrustModule: React.FC<CommitteeTrustModuleProps> = ({
   const handleSaveOpening = (e: React.FormEvent) => {
     e.preventDefault();
     const bal = parseFloat(openingForm.openingBalance);
-    if (!openingForm.accountName || isNaN(bal)) {
-      alert('Please enter Account Name and Opening Balance amount.');
+    if (!openingForm.accountName.trim() || isNaN(bal) || bal < 0) {
+      setFormError('Please enter a valid Account Name and non-negative Opening Balance amount.');
       return;
     }
     const newBal: TrustOpeningBalance = {
@@ -561,25 +613,33 @@ export const CommitteeTrustModule: React.FC<CommitteeTrustModuleProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {members.map((m) => (
-                  <tr key={m.id} className="hover:bg-amber-50/30 transition-colors">
-                    <td className="py-2.5 px-3 font-mono font-bold text-slate-800">{m.itsNumber}</td>
-                    <td className="py-2.5 px-3 font-bold text-slate-900">{m.fullName}</td>
-                    <td className="py-2.5 px-3 text-slate-700">{m.roleTitle}</td>
-                    <td className="py-2.5 px-3">
-                      <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-900 font-bold text-[10px]">
-                        {m.portfolioName}
-                      </span>
-                    </td>
-                    <td className="py-2.5 px-3 text-slate-600 font-mono">{m.contact}</td>
-                    <td className="py-2.5 px-3 text-slate-500">{m.tenureStartHijri} – {m.tenureEndHijri}</td>
-                    <td className="py-2.5 px-3 text-right">
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
-                        {m.status}
-                      </span>
+                {members.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="py-8 text-center text-slate-400 italic">
+                      No committee members recorded yet.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  members.map((m) => (
+                    <tr key={m.id} className="hover:bg-amber-50/30 transition-colors">
+                      <td className="py-2.5 px-3 font-mono font-bold text-slate-800">{m.itsNumber}</td>
+                      <td className="py-2.5 px-3 font-bold text-slate-900">{m.fullName}</td>
+                      <td className="py-2.5 px-3 text-slate-700">{m.roleTitle}</td>
+                      <td className="py-2.5 px-3">
+                        <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-900 font-bold text-[10px]">
+                          {m.portfolioName}
+                        </span>
+                      </td>
+                      <td className="py-2.5 px-3 text-slate-600 font-mono">{m.contact}</td>
+                      <td className="py-2.5 px-3 text-slate-500">{m.tenureStartHijri} – {m.tenureEndHijri}</td>
+                      <td className="py-2.5 px-3 text-right">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                          {m.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -841,35 +901,38 @@ export const CommitteeTrustModule: React.FC<CommitteeTrustModuleProps> = ({
                   <td className="py-2.5 px-3 text-right font-black text-slate-900">₹{totalOpeningBalance.toLocaleString('en-IN')}</td>
                 </tr>
 
-                {incomeEntries.map((inc) => (
-                  <tr key={inc.id} className="hover:bg-slate-50">
-                    <td className="py-2.5 px-3 text-slate-600">{inc.date}</td>
-                    <td className="py-2.5 px-3 font-mono font-bold text-emerald-800">{inc.receiptNo}</td>
-                    <td className="py-2.5 px-3 text-slate-800">
-                      <span className="font-semibold">{inc.headName}</span> — {inc.receivedFrom}
-                    </td>
-                    <td className="py-2.5 px-3 text-right font-bold text-emerald-700">₹{inc.amount.toLocaleString('en-IN')}</td>
-                    <td className="py-2.5 px-3 text-right text-slate-400">-</td>
-                    <td className="py-2.5 px-3 text-right font-mono text-slate-700">
-                      ₹{(totalOpeningBalance + inc.amount).toLocaleString('en-IN')}
+                {ledgerRows.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="py-8 text-center text-slate-400 italic">
+                      No income or expense postings recorded for this period.
                     </td>
                   </tr>
-                ))}
-
-                {expenseEntries.map((exp) => (
-                  <tr key={exp.id} className="hover:bg-slate-50">
-                    <td className="py-2.5 px-3 text-slate-600">{exp.date}</td>
-                    <td className="py-2.5 px-3 font-mono font-bold text-rose-800">{exp.voucherNo}</td>
-                    <td className="py-2.5 px-3 text-slate-800">
-                      <span className="font-semibold">{exp.headName}</span> — {exp.paidTo}
-                    </td>
-                    <td className="py-2.5 px-3 text-right text-slate-400">-</td>
-                    <td className="py-2.5 px-3 text-right font-bold text-rose-700">₹{exp.amount.toLocaleString('en-IN')}</td>
-                    <td className="py-2.5 px-3 text-right font-mono text-slate-700">
-                      ₹{(totalOpeningBalance + totalIncome - exp.amount).toLocaleString('en-IN')}
-                    </td>
-                  </tr>
-                ))}
+                ) : (
+                  ledgerRows.map((row) => (
+                    <tr key={row.id} className="hover:bg-slate-50">
+                      <td className="py-2.5 px-3 text-slate-600 font-mono">{row.date}</td>
+                      <td
+                        className={`py-2.5 px-3 font-mono font-bold ${
+                          row.creditInflow > 0 ? 'text-emerald-800' : 'text-rose-800'
+                        }`}
+                      >
+                        {row.docRef}
+                      </td>
+                      <td className="py-2.5 px-3 text-slate-800">
+                        <span className="font-semibold">{row.headName}</span> — {row.party}
+                      </td>
+                      <td className="py-2.5 px-3 text-right font-bold text-emerald-700">
+                        {row.creditInflow > 0 ? `₹${row.creditInflow.toLocaleString('en-IN')}` : '-'}
+                      </td>
+                      <td className="py-2.5 px-3 text-right font-bold text-rose-700">
+                        {row.debitOutflow > 0 ? `₹${row.debitOutflow.toLocaleString('en-IN')}` : '-'}
+                      </td>
+                      <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-800">
+                        ₹{row.runningBalance.toLocaleString('en-IN')}
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -895,6 +958,12 @@ export const CommitteeTrustModule: React.FC<CommitteeTrustModuleProps> = ({
             </div>
 
             <form onSubmit={handleSaveMember} className="space-y-3 text-xs">
+              {formError && (
+                <div className="p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 font-semibold flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+                  <span>{formError}</span>
+                </div>
+              )}
               <div>
                 <label className="block font-bold text-slate-700 mb-1">Full Name & Title</label>
                 <input
@@ -1010,6 +1079,12 @@ export const CommitteeTrustModule: React.FC<CommitteeTrustModuleProps> = ({
             </div>
 
             <form onSubmit={handleSaveIncome} className="space-y-3 text-xs">
+              {formError && (
+                <div className="p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 font-semibold flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+                  <span>{formError}</span>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">Income Head</label>
@@ -1154,6 +1229,12 @@ export const CommitteeTrustModule: React.FC<CommitteeTrustModuleProps> = ({
             </div>
 
             <form onSubmit={handleSaveExpense} className="space-y-3 text-xs">
+              {formError && (
+                <div className="p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 font-semibold flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+                  <span>{formError}</span>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">Expense Head</label>
@@ -1299,6 +1380,12 @@ export const CommitteeTrustModule: React.FC<CommitteeTrustModuleProps> = ({
             </div>
 
             <form onSubmit={handleSaveTransfer} className="space-y-3 text-xs">
+              {formError && (
+                <div className="p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 font-semibold flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+                  <span>{formError}</span>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">From Account (Source)</label>
@@ -1400,6 +1487,12 @@ export const CommitteeTrustModule: React.FC<CommitteeTrustModuleProps> = ({
             </div>
 
             <form onSubmit={handleSaveOpening} className="space-y-3 text-xs">
+              {formError && (
+                <div className="p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 font-semibold flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+                  <span>{formError}</span>
+                </div>
+              )}
               <div>
                 <label className="block font-bold text-slate-700 mb-1">Account / Vault Name</label>
                 <input

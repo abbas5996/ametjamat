@@ -2414,16 +2414,33 @@ const OutstandingSafaiChitthiSubpage: React.FC<{
   currentUser: UserProfile;
   showToast: (m: string) => void;
 }> = ({ safaiChitthies, setSafaiChitthies, currentUser, showToast }) => {
-  const handleApproveOverride = (id: string) => {
-    const reason = prompt('Enter Janab Super Admin override approval justification:') || 'Approved by Janab';
-    const updated = safaiChitthies.map(s => s.id === id ? {
+  const [overrideTargetId, setOverrideTargetId] = useState<string | null>(null);
+  const [overrideReason, setOverrideReason] = useState('');
+  const [overrideError, setOverrideError] = useState<string | null>(null);
+
+  const openOverrideModal = (id: string) => {
+    setOverrideTargetId(id);
+    setOverrideReason('Approved by Janab');
+    setOverrideError(null);
+  };
+
+  const handleConfirmOverride = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!overrideTargetId) return;
+    if (!overrideReason.trim()) {
+      setOverrideError('Please enter Janab override approval justification.');
+      return;
+    }
+    const updated = safaiChitthies.map(s => s.id === overrideTargetId ? {
       ...s,
       status: 'Issued' as const,
       overrideBy: currentUser.username,
-      overrideReason: reason,
+      overrideReason: overrideReason.trim(),
     } : s);
     setSafaiChitthies(updated);
     saveStoredSafaiChitthies(updated);
+    setOverrideTargetId(null);
+    setOverrideReason('');
     showToast('Safai Chitthi clearance approved via Janab override.');
   };
 
@@ -2455,54 +2472,102 @@ const OutstandingSafaiChitthiSubpage: React.FC<{
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {safaiChitthies.map((s) => (
-                <tr key={s.id} className="hover:bg-slate-50">
-                  <td className="px-4 py-3 font-mono font-bold text-amber-700">{s.chitthiNo}</td>
-                  <td className="px-4 py-3">
-                    <p className="font-bold text-slate-900">{s.fullName}</p>
-                    <p className="font-mono text-slate-400 text-[11px]">ITS: {s.itsNumber}</p>
-                  </td>
-                  <td className="px-4 py-3 text-slate-800">{s.destinationJamaat}</td>
-                  <td className="px-4 py-3 font-mono text-rose-700 font-bold">
-                    {fmtINR(s.totalDuesAtRequest)}
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                      s.status === 'Issued'
-                        ? 'bg-emerald-100 text-emerald-800'
-                        : s.status === 'Blocked'
-                        ? 'bg-rose-100 text-rose-800'
-                        : 'bg-slate-100 text-slate-600'
-                    }`}>
-                      {s.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    {s.status === 'Blocked' && (
-                      <div className="flex items-center justify-end gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => handleApproveOverride(s.id)}
-                          className="px-2.5 py-1 text-[11px] font-bold bg-amber-100 text-amber-900 hover:bg-amber-200 rounded cursor-pointer"
-                        >
-                          Janab Override
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleCancelRequest(s.id)}
-                          className="px-2.5 py-1 text-[11px] font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 rounded cursor-pointer"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    )}
+              {safaiChitthies.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-4 py-8 text-center text-slate-400 italic">
+                    No Safai Chitthi clearance records found.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                safaiChitthies.map((s) => (
+                  <tr key={s.id} className="hover:bg-slate-50">
+                    <td className="px-4 py-3 font-mono font-bold text-amber-700">{s.chitthiNo}</td>
+                    <td className="px-4 py-3">
+                      <p className="font-bold text-slate-900">{s.fullName}</p>
+                      <p className="font-mono text-slate-400 text-[11px]">ITS: {s.itsNumber}</p>
+                    </td>
+                    <td className="px-4 py-3 text-slate-800">{s.destinationJamaat}</td>
+                    <td className="px-4 py-3 font-mono text-rose-700 font-bold">
+                      {fmtINR(s.totalDuesAtRequest)}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                        s.status === 'Issued'
+                          ? 'bg-emerald-100 text-emerald-800'
+                          : s.status === 'Blocked'
+                          ? 'bg-rose-100 text-rose-800'
+                          : 'bg-slate-100 text-slate-600'
+                      }`}>
+                        {s.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      {s.status === 'Blocked' && (
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => openOverrideModal(s.id)}
+                            className="px-2.5 py-1 text-[11px] font-bold bg-amber-100 text-amber-900 hover:bg-amber-200 rounded cursor-pointer"
+                          >
+                            Janab Override
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleCancelRequest(s.id)}
+                            className="px-2.5 py-1 text-[11px] font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 rounded cursor-pointer"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
       </div>
+
+      {overrideTargetId && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-5 shadow-2xl border border-amber-300 space-y-4">
+            <h4 className="text-sm font-bold text-slate-900">Janab Override Clearance Justification</h4>
+            <form onSubmit={handleConfirmOverride} className="space-y-3 text-xs">
+              {overrideError && (
+                <div className="p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 font-semibold">
+                  {overrideError}
+                </div>
+              )}
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Approval Justification</label>
+                <textarea
+                  rows={3}
+                  value={overrideReason}
+                  onChange={(e) => setOverrideReason(e.target.value)}
+                  placeholder="Enter reason for authorizing clearance override..."
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-amber-500 outline-none"
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setOverrideTargetId(null)}
+                  className="px-3.5 py-1.5 border border-slate-300 rounded-lg text-slate-700 font-semibold cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-3.5 py-1.5 bg-amber-400 hover:bg-amber-500 text-slate-950 font-black rounded-lg cursor-pointer"
+                >
+                  Approve Override
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

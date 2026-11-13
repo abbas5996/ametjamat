@@ -17,6 +17,8 @@ import { getStoredFaizHubs } from '../../utils/faizModule';
 import { getStoredBanks } from '../../utils/fmbPart1Data';
 import { FaizOfficialPrintReceipt } from './FaizOfficialPrintReceipt';
 import { UserProfile } from '../../types';
+import { toIsoDate } from '../../utils/dateFilters';
+import { QuickDatePresetsBar } from '../common/DateFilterBar';
 
 const fmtINR = (n: number) => `₹${n.toLocaleString('en-IN')}`;
 
@@ -120,8 +122,11 @@ export const FaizReceiptManagementSubpage: React.FC<Props> = ({
       if (!modeFilters[r.paymentMode]) return false;
 
       // Date Range
-      if (startDate && r.date < startDate) return false;
-      if (endDate && r.date > endDate) return false;
+      if (startDate || endDate) {
+        const itemIso = toIsoDate(r.date) || r.date;
+        if (startDate && itemIso < startDate) return false;
+        if (endDate && itemIso > endDate) return false;
+      }
 
       // Select Specific Filters
       if (itsFilter && !r.itsNumber.toLowerCase().includes(itsFilter.toLowerCase())) return false;
@@ -246,7 +251,7 @@ export const FaizReceiptManagementSubpage: React.FC<Props> = ({
               View / Print Faiz Receipts & Counter Desk
             </h2>
             <p className="text-xs text-slate-600 mt-0.5">
-              Multi-parameter receipt register, bulk printing, Hoob/Zabihat and Takhmeen receipt generation [cite: 41]
+              Multi-parameter receipt register, bulk printing, Hoob/Zabihat and Takhmeen receipt generation
             </p>
           </div>
         </div>
