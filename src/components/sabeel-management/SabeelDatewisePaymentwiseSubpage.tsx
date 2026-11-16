@@ -198,21 +198,19 @@ export const SabeelDatewisePaymentwiseSubpage: React.FC<SabeelDatewisePaymentwis
             <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
               <button
                 onClick={() => setActiveReportTab('datewise')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                  activeReportTab === 'datewise'
-                    ? 'bg-amber-400 text-slate-950 shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${activeReportTab === 'datewise'
+                  ? 'bg-amber-400 text-slate-950 shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+                  }`}
               >
                 Datewise Report
               </button>
               <button
                 onClick={() => setActiveReportTab('paymentwise')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                  activeReportTab === 'paymentwise'
-                    ? 'bg-amber-400 text-slate-950 shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${activeReportTab === 'paymentwise'
+                  ? 'bg-amber-400 text-slate-950 shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+                  }`}
               >
                 Paymentwise Report
               </button>
@@ -437,11 +435,11 @@ export const SabeelDatewisePaymentwiseSubpage: React.FC<SabeelDatewisePaymentwis
               <div className="text-2xl font-black text-purple-700">
                 {paymentwiseData.grandTotal > 0
                   ? (
-                      ((paymentwiseData.list.find(x => x.mode === 'UPI')?.total || 0) +
-                        (paymentwiseData.list.find(x => x.mode === 'Bank Transfer')?.total || 0)) /
-                      paymentwiseData.grandTotal *
-                      100
-                    ).toFixed(1)
+                    ((paymentwiseData.list.find(x => x.mode === 'UPI')?.total || 0) +
+                      (paymentwiseData.list.find(x => x.mode === 'Bank Transfer')?.total || 0)) /
+                    paymentwiseData.grandTotal *
+                    100
+                  ).toFixed(1)
                   : 0}%
               </div>
               <p className="text-[11px] text-slate-500 mt-2">

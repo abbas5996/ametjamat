@@ -622,22 +622,20 @@ export const FaizDashboard: React.FC<FaizDashboardProps> = ({
                       </td>
                       <td className="py-2.5 px-3">
                         <span
-                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                            t.status === 'Active'
-                              ? 'bg-emerald-100 text-emerald-800'
-                              : t.status === 'Vacation'
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${t.status === 'Active'
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : t.status === 'Vacation'
                               ? 'bg-amber-100 text-amber-800'
                               : 'bg-rose-100 text-rose-800'
-                          }`}
+                            }`}
                         >
                           <span
-                            className={`w-1.5 h-1.5 rounded-full ${
-                              t.status === 'Active'
-                                ? 'bg-emerald-500'
-                                : t.status === 'Vacation'
+                            className={`w-1.5 h-1.5 rounded-full ${t.status === 'Active'
+                              ? 'bg-emerald-500'
+                              : t.status === 'Vacation'
                                 ? 'bg-amber-500'
                                 : 'bg-rose-500'
-                            }`}
+                              }`}
                           ></span>
                           {t.status}
                         </span>
@@ -646,11 +644,10 @@ export const FaizDashboard: React.FC<FaizDashboardProps> = ({
                         <button
                           type="button"
                           onClick={() => handleToggleStatus(t.id, t.status)}
-                          className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all shadow-2xs cursor-pointer ${
-                            t.status === 'Active'
-                              ? 'bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300'
-                              : 'bg-emerald-100 hover:bg-emerald-200 text-emerald-900 border border-emerald-300'
-                          }`}
+                          className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all shadow-2xs cursor-pointer ${t.status === 'Active'
+                            ? 'bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300'
+                            : 'bg-emerald-100 hover:bg-emerald-200 text-emerald-900 border border-emerald-300'
+                            }`}
                         >
                           {t.status === 'Active' ? 'Set Vacation' : 'Set Active'}
                         </button>
